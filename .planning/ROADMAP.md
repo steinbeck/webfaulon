@@ -12,7 +12,7 @@ WebFaulon delivers a browser-based educational tool that brings Faulon's 1996 si
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Molecular Graph & SA Core** - Chemical correctness foundation
+- [x] **Phase 1: Molecular Graph & SA Core** - Chemical correctness foundation
 - [ ] **Phase 2: Browser Integration & Controls** - Web Workers, user input, execution controls
 - [ ] **Phase 3: Visualization & UX** - Charts, structure rendering, classroom-ready design
 
@@ -31,10 +31,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffold, MolGraph data structure, and Wiener Index
-- [ ] 01-02-PLAN.md — Initial structure generation from molecular formula (TDD)
-- [ ] 01-03-PLAN.md — Faulon displacement equations 7-11 and seeded PRNG (TDD)
-- [ ] 01-04-PLAN.md — SA engine with Metropolis criterion and cooling schedules (TDD)
+- [x] 01-01-PLAN.md — Project scaffold, MolGraph data structure, and Wiener Index
+- [x] 01-02-PLAN.md — Initial structure generation from molecular formula (TDD)
+- [x] 01-03-PLAN.md — Faulon displacement equations 7-11 and seeded PRNG (TDD)
+- [x] 01-04-PLAN.md — SA engine with Metropolis criterion and cooling schedules (TDD)
 
 ### Phase 2: Browser Integration & Controls
 **Goal**: Users can configure and execute SA algorithm in browser without UI freezing
@@ -77,11 +77,11 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Molecular Graph & SA Core | 0/4 | Planning complete | - |
+| 1. Molecular Graph & SA Core | 4/4 | Complete | 2026-02-14 |
 | 2. Browser Integration & Controls | 0/TBD | Not started | - |
 | 3. Visualization & UX | 0/TBD | Not started | - |
 
 ---
 
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 after phase 1 planning*
+*Last updated: 2026-02-14 after phase 1 execution complete*

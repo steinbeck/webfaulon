@@ -15,12 +15,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Algorithm
 
-- [ ] **ALG-01**: SA implements Faulon's displacement: pick 4 atoms (x1, y1, x2, y2), redistribute bond orders per equations 7-11 while preserving valences
-- [ ] **ALG-02**: Initial structure generated deterministically from the molecular formula (valid connectivity and valences)
-- [ ] **ALG-03**: Wiener Index computed as cost function (half-sum of all shortest path distances between atom pairs in heavy-atom graph)
-- [ ] **ALG-04**: User can toggle between maximizing and minimizing the Wiener Index
-- [ ] **ALG-05**: SA accepts/rejects moves using Metropolis criterion: accept if delta_e < 0 (improving), else accept with probability exp(-delta_e/kT)
-- [ ] **ALG-06**: Graph connectivity validated after every SA move (disconnected fragments rejected, molecule stays connected)
+- [x] **ALG-01**: SA implements Faulon's displacement: pick 4 atoms (x1, y1, x2, y2), redistribute bond orders per equations 7-11 while preserving valences
+- [x] **ALG-02**: Initial structure generated deterministically from the molecular formula (valid connectivity and valences)
+- [x] **ALG-03**: Wiener Index computed as cost function (half-sum of all shortest path distances between atom pairs in heavy-atom graph)
+- [x] **ALG-04**: User can toggle between maximizing and minimizing the Wiener Index
+- [x] **ALG-05**: SA accepts/rejects moves using Metropolis criterion: accept if delta_e < 0 (improving), else accept with probability exp(-delta_e/kT)
+- [x] **ALG-06**: Graph connectivity validated after every SA move (disconnected fragments rejected, molecule stays connected)
 - [ ] **ALG-07**: Algorithm runs entirely in-browser via Web Worker (no backend required, UI stays responsive during computation)
 
 ### Controls
@@ -81,12 +81,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INP-01 | Phase 2 | Pending |
 | INP-02 | Phase 2 | Pending |
 | INP-03 | Phase 2 | Pending |
-| ALG-01 | Phase 1 | Pending |
-| ALG-02 | Phase 1 | Pending |
-| ALG-03 | Phase 1 | Pending |
-| ALG-04 | Phase 1 | Pending |
-| ALG-05 | Phase 1 | Pending |
-| ALG-06 | Phase 1 | Pending |
+| ALG-01 | Phase 1 | Done |
+| ALG-02 | Phase 1 | Done |
+| ALG-03 | Phase 1 | Done |
+| ALG-04 | Phase 1 | Done |
+| ALG-05 | Phase 1 | Done |
+| ALG-06 | Phase 1 | Done |
 | ALG-07 | Phase 2 | Pending |
 | CTRL-01 | Phase 2 | Pending |
 | CTRL-02 | Phase 2 | Pending |
@@ -107,4 +107,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after roadmap creation*
+*Last updated: 2026-02-14 after phase 1 execution complete*
