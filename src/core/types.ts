@@ -12,8 +12,8 @@ export type OptimizationMode = 'MAXIMIZE' | 'MINIMIZE';
 
 export interface SAStepResult {
   step: number;
-  energy: number;        // Wiener Index value
-  bestEnergy: number;
-  temperature: number;
-  accepted: boolean;
+  currentEnergy: number;  // Current graph's Wiener Index
+  bestEnergy: number;     // Best energy found so far
+  temperature: number;    // Temperature at this step
+  accepted: boolean;      // Whether the move was accepted
 }
