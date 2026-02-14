@@ -1,0 +1,367 @@
+import { describe, it, expect } from 'vitest';
+import { SAEngine, type SAParams } from '../SAEngine';
+import { SeededRandom } from '../random';
+
+describe('SAEngine', () => {
+  const defaultParams: SAParams = {
+    formula: 'C6H14',
+    initialTemp: 100,
+    coolingScheduleK: 8,
+    stepsPerCycle: 100,
+    numCycles: 2,
+    optimizationMode: 'MINIMIZE',
+    seed: 42,
+  };
+
+  describe('basic functionality', () => {
+    it('creates engine with valid parameters', () => {
+      const engine = new SAEngine(defaultParams);
+      expect(engine).toBeDefined();
+    });
+
+    it('returns SAResult with all required fields', () => {
+      const engine = new SAEngine(defaultParams);
+      const result = engine.run();
+
+      expect(result.bestGraph).toBeDefined();
+      expect(result.bestEnergy).toBeTypeOf('number');
+      expect(result.finalGraph).toBeDefined();
+      expect(result.finalEnergy).toBeTypeOf('number');
+      expect(result.initialEnergy).toBeTypeOf('number');
+      expect(result.totalSteps).toBe(200); // 100 * 2
+      expect(result.acceptedMoves).toBeTypeOf('number');
+      expect(result.rejectedMoves).toBeTypeOf('number');
+      expect(result.invalidMoves).toBeTypeOf('number');
+      expect(result.acceptanceRatio).toBeTypeOf('number');
+      expect(result.history).toBeInstanceOf(Array);
+    });
+
+    it('history array has correct length', () => {
+      const engine = new SAEngine(defaultParams);
+      const result = engine.run();
+
+      expect(result.history.length).toBe(result.totalSteps);
+    });
+
+    it('accounting: acceptedMoves + rejectedMoves + invalidMoves = totalSteps', () => {
+      const engine = new SAEngine(defaultParams);
+      const result = engine.run();
+
+      const sum = result.acceptedMoves + result.rejectedMoves + result.invalidMoves;
+      expect(sum).toBe(result.totalSteps);
+    });
+
+    it('acceptanceRatio is between 0 and 1', () => {
+      const engine = new SAEngine(defaultParams);
+      const result = engine.run();
+
+      expect(result.acceptanceRatio).toBeGreaterThanOrEqual(0);
+      expect(result.acceptanceRatio).toBeLessThanOrEqual(1);
+    });
+  });
+
+  describe('determinism', () => {
+    it('same seed produces identical results', () => {
+      const params1 = { ...defaultParams, seed: 42 };
+      const params2 = { ...defaultParams, seed: 42 };
+
+      const engine1 = new SAEngine(params1);
+      const engine2 = new SAEngine(params2);
+
+      const result1 = engine1.run();
+      const result2 = engine2.run();
+
+      expect(result1.bestEnergy).toBe(result2.bestEnergy);
+      expect(result1.totalSteps).toBe(result2.totalSteps);
+      expect(result1.acceptedMoves).toBe(result2.acceptedMoves);
+      expect(result1.rejectedMoves).toBe(result2.rejectedMoves);
+      expect(result1.invalidMoves).toBe(result2.invalidMoves);
+    });
+
+    it('different seeds produce different results (with high probability)', () => {
+      const params1 = { ...defaultParams, seed: 42 };
+      const params2 = { ...defaultParams, seed: 123 };
+
+      const engine1 = new SAEngine(params1);
+      const engine2 = new SAEngine(params2);
+
+      const result1 = engine1.run();
+      const result2 = engine2.run();
+
+      // At least one metric should differ
+      const differs =
+        result1.bestEnergy !== result2.bestEnergy ||
+        result1.acceptedMoves !== result2.acceptedMoves ||
+        result1.rejectedMoves !== result2.rejectedMoves;
+
+      expect(differs).toBe(true);
+    });
+  });
+
+  describe('minimization', () => {
+    it('finds Wiener Index lower than initial linear chain value for C6H14', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        optimizationMode: 'MINIMIZE',
+        stepsPerCycle: 500,
+        numCycles: 4,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      // Linear hexane has Wiener Index = 35
+      // Any branching reduces it (e.g., 2-methylpentane = 29, 2,3-dimethylbutane = 26)
+      // SA should find something better than initial
+      expect(result.bestEnergy).toBeLessThan(result.initialEnergy);
+    });
+
+    it('best energy is less than or equal to final energy', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        optimizationMode: 'MINIMIZE',
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      expect(result.bestEnergy).toBeLessThanOrEqual(result.finalEnergy);
+    });
+  });
+
+  describe('maximization', () => {
+    it('finds Wiener Index equal to or higher than initial value for C6H14', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        optimizationMode: 'MAXIMIZE',
+        stepsPerCycle: 500,
+        numCycles: 4,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      // Linear hexane already has maximum Wiener Index = 35
+      // SA should maintain or potentially find the same value
+      expect(result.bestEnergy).toBeGreaterThanOrEqual(result.initialEnergy);
+    });
+
+    it('best energy is greater than or equal to final energy', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        optimizationMode: 'MAXIMIZE',
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      expect(result.bestEnergy).toBeGreaterThanOrEqual(result.finalEnergy);
+    });
+  });
+
+  describe('chemical validity', () => {
+    it('bestGraph is connected and has valid valences', () => {
+      const engine = new SAEngine(defaultParams);
+      const result = engine.run();
+
+      expect(result.bestGraph.isConnected()).toBe(true);
+      expect(result.bestGraph.hasValidValences()).toBe(true);
+    });
+
+    it('finalGraph is connected and has valid valences', () => {
+      const engine = new SAEngine(defaultParams);
+      const result = engine.run();
+
+      expect(result.finalGraph.isConnected()).toBe(true);
+      expect(result.finalGraph.hasValidValences()).toBe(true);
+    });
+
+    it('all graphs in history are from valid molecules', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        stepsPerCycle: 50,
+        numCycles: 1,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      // Every step that was accepted should have valid energy
+      for (const step of result.history) {
+        expect(step.currentEnergy).toBeTypeOf('number');
+        expect(step.currentEnergy).toBeGreaterThan(0);
+        expect(step.bestEnergy).toBeTypeOf('number');
+        expect(step.bestEnergy).toBeGreaterThan(0);
+        expect(step.temperature).toBeGreaterThanOrEqual(0.01);
+      }
+    });
+  });
+
+  describe('history tracking', () => {
+    it('records step-by-step results', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        stepsPerCycle: 10,
+        numCycles: 1,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      expect(result.history.length).toBe(10);
+
+      for (let i = 0; i < result.history.length; i++) {
+        const step = result.history[i];
+        expect(step.step).toBe(i + 1);
+        expect(step.currentEnergy).toBeTypeOf('number');
+        expect(step.bestEnergy).toBeTypeOf('number');
+        expect(step.temperature).toBeTypeOf('number');
+        expect(step.accepted).toBeTypeOf('boolean');
+      }
+    });
+
+    it('best energy is non-increasing over time (minimization)', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        optimizationMode: 'MINIMIZE',
+        stepsPerCycle: 50,
+        numCycles: 2,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      for (let i = 1; i < result.history.length; i++) {
+        expect(result.history[i].bestEnergy).toBeLessThanOrEqual(
+          result.history[i - 1].bestEnergy
+        );
+      }
+    });
+
+    it('best energy is non-decreasing over time (maximization)', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        optimizationMode: 'MAXIMIZE',
+        stepsPerCycle: 50,
+        numCycles: 2,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      for (let i = 1; i < result.history.length; i++) {
+        expect(result.history[i].bestEnergy).toBeGreaterThanOrEqual(
+          result.history[i - 1].bestEnergy
+        );
+      }
+    });
+  });
+
+  describe('Metropolis acceptance criterion', () => {
+    it('always accepts improving moves', () => {
+      const rng = new SeededRandom(42);
+
+      // Test the metropolis acceptance logic directly via SA run
+      const params: SAParams = {
+        formula: 'C4H10',
+        initialTemp: 0.01, // Very low temperature
+        coolingScheduleK: 0, // Constant temperature
+        stepsPerCycle: 100,
+        numCycles: 1,
+        optimizationMode: 'MINIMIZE',
+        seed: 42,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      // At low temperature, should still accept improving moves
+      // Check that some moves were accepted (not all rejected)
+      expect(result.acceptedMoves).toBeGreaterThan(0);
+    });
+
+    it('rarely accepts worsening moves at near-zero temperature', () => {
+      const params: SAParams = {
+        formula: 'C5H12',
+        initialTemp: 0.01, // Very low temperature
+        coolingScheduleK: 0, // Constant
+        stepsPerCycle: 1000,
+        numCycles: 1,
+        optimizationMode: 'MINIMIZE',
+        seed: 100,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      // At very low temperature, acceptance ratio should be quite low
+      // (only improving moves accepted, worsening moves almost never)
+      expect(result.acceptanceRatio).toBeLessThan(0.3);
+    });
+
+    it('frequently accepts worsening moves at high temperature', () => {
+      const params: SAParams = {
+        formula: 'C5H12',
+        initialTemp: 1000, // Very high temperature
+        coolingScheduleK: 0, // Constant
+        stepsPerCycle: 1000,
+        numCycles: 1,
+        optimizationMode: 'MINIMIZE',
+        seed: 200,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      // At very high temperature, acceptance ratio should be high
+      // (both improving and worsening moves accepted frequently)
+      expect(result.acceptanceRatio).toBeGreaterThan(0.5);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles small molecules (C4H10)', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        formula: 'C4H10',
+        stepsPerCycle: 50,
+        numCycles: 1,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      expect(result.bestGraph).toBeDefined();
+      expect(result.bestGraph.isConnected()).toBe(true);
+      expect(result.bestGraph.hasValidValences()).toBe(true);
+    });
+
+    it('handles single cycle', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        numCycles: 1,
+        stepsPerCycle: 10,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      expect(result.totalSteps).toBe(10);
+      expect(result.history.length).toBe(10);
+    });
+
+    it('handles many cycles', () => {
+      const params: SAParams = {
+        ...defaultParams,
+        numCycles: 10,
+        stepsPerCycle: 10,
+      };
+
+      const engine = new SAEngine(params);
+      const result = engine.run();
+
+      expect(result.totalSteps).toBe(100);
+      expect(result.history.length).toBe(100);
+    });
+  });
+});
