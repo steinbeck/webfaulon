@@ -163,11 +163,6 @@ export class SAEngine {
     // Compute energy of proposed graph
     const proposedEnergy = computeWienerIndex(proposedGraph);
 
-    // DEBUG: Log energy changes for first few steps
-    // if (this.totalSteps <= 10) {
-    //   console.log(`Step ${stepNumber}: current=${this.currentEnergy}, proposed=${proposedEnergy}`);
-    // }
-
     // Compute energy delta based on optimization mode
     // For MINIMIZE: positive delta = worsening move
     // For MAXIMIZE: positive delta = worsening move
@@ -185,12 +180,7 @@ export class SAEngine {
       this.currentEnergy = proposedEnergy;
 
       // Update best if this is better
-      const isBetter =
-        this.params.optimizationMode === 'MINIMIZE'
-          ? this.currentEnergy < this.bestEnergy
-          : this.currentEnergy > this.bestEnergy;
-
-      if (isBetter) {
+      if (this.isBetter(this.currentEnergy, this.bestEnergy)) {
         this.bestGraph = this.currentGraph.clone();
         this.bestEnergy = this.currentEnergy;
       }
@@ -199,6 +189,19 @@ export class SAEngine {
     }
 
     this.recordStep(stepNumber, temperature, accepted);
+  }
+
+  /**
+   * Check if proposed energy is better than current best based on optimization mode
+   *
+   * @param proposedEnergy Energy to test
+   * @param currentBest Current best energy
+   * @returns true if proposed is better than current best
+   */
+  private isBetter(proposedEnergy: number, currentBest: number): boolean {
+    return this.params.optimizationMode === 'MINIMIZE'
+      ? proposedEnergy < currentBest
+      : proposedEnergy > currentBest;
   }
 
   /**
@@ -219,12 +222,7 @@ export class SAEngine {
 
     // Probabilistically accept worsening moves
     const probability = Math.exp(-deltaE / temperature);
-    const rand = this.rng.next();
-    // DEBUG: Uncomment to debug Metropolis
-    // if (this.totalSteps < 10) {
-    //   console.log(`deltaE=${deltaE}, T=${temperature}, prob=${probability}, rand=${rand}, accept=${rand < probability}`);
-    // }
-    return rand < probability;
+    return this.rng.next() < probability;
   }
 
   /**
