@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseFormula, computeHDI, FormulaMap } from '../formulaParser';
+import { parseFormula, computeHDI } from '../formulaParser';
 
 describe('parseFormula', () => {
   it('parses simple alkane formulas', () => {
