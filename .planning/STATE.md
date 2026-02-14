@@ -10,30 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Position
 
 Phase: 1 of 3 (Molecular Graph & SA Core)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-02-14 — Roadmap created with 3 phases covering 21 v1 requirements
+Plan: 1 of 4 in current phase
+Status: Executing
+Last activity: 2026-02-14 — Completed plan 01-01 with MolGraph and Wiener Index implementation
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 25% (1/4 plans complete in Phase 1)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0
-- Average duration: - min
-- Total execution time: 0.0 hours
+- Total plans completed: 1
+- Average duration: 4 min
+- Total execution time: 0.07 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 01-molecular-graph-sa-core | 1 | 4 min | 4 min |
 
-**Recent Trend:**
-- Last 5 plans: None yet
-- Trend: Baseline (no data)
-
-*Updated after each plan completion*
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 01-molecular-graph-sa-core | 01 | 4 min | 3 | 8 |
 
 ## Accumulated Context
 
@@ -46,6 +44,8 @@ Recent decisions affecting current work:
 - Initialization: In-browser only architecture (no backend, simplest classroom deployment)
 - Initialization: Wiener Index as sole cost function for v1 (matches paper's primary test case)
 - Initialization: Modern SPA with Vite (good DX, tree-shaking, easy dependencies)
+- [Phase 01-01]: Mutable MolGraph with explicit validation (SA displacement pattern)
+- [Phase 01-01]: Array-based BFS queue for O(1) dequeue in Wiener computation
 
 ### Pending Todos
 
@@ -63,6 +63,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-14 (roadmap creation)
-Stopped at: Roadmap and STATE.md initialized, ready for Phase 1 planning
+Last session: 2026-02-14 (plan execution)
+Stopped at: Completed 01-01-PLAN.md with 47 tests passing
 Resume file: None
