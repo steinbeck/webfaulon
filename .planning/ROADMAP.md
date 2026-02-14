@@ -28,12 +28,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Molecular graph remains connected after every SA move (no disconnected fragments)
   4. Wiener Index computes correctly in under 5ms for 50-atom molecules
   5. SA accepts/rejects moves according to Metropolis criterion with configurable max/min optimization
-**Plans**: TBD
+**Plans:** 4 plans
 
 Plans:
-- [ ] 01-01: TBD during planning
-- [ ] 01-02: TBD during planning
-- [ ] 01-03: TBD during planning
+- [ ] 01-01-PLAN.md — Project scaffold, MolGraph data structure, and Wiener Index
+- [ ] 01-02-PLAN.md — Initial structure generation from molecular formula (TDD)
+- [ ] 01-03-PLAN.md — Faulon displacement equations 7-11 and seeded PRNG (TDD)
+- [ ] 01-04-PLAN.md — SA engine with Metropolis criterion and cooling schedules (TDD)
 
 ### Phase 2: Browser Integration & Controls
 **Goal**: Users can configure and execute SA algorithm in browser without UI freezing
@@ -76,11 +77,11 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Molecular Graph & SA Core | 0/TBD | Not started | - |
+| 1. Molecular Graph & SA Core | 0/4 | Planning complete | - |
 | 2. Browser Integration & Controls | 0/TBD | Not started | - |
 | 3. Visualization & UX | 0/TBD | Not started | - |
 
 ---
 
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 after initialization*
+*Last updated: 2026-02-14 after phase 1 planning*
