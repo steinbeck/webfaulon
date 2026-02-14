@@ -78,33 +78,33 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INP-01 | — | Pending |
-| INP-02 | — | Pending |
-| INP-03 | — | Pending |
-| ALG-01 | — | Pending |
-| ALG-02 | — | Pending |
-| ALG-03 | — | Pending |
-| ALG-04 | — | Pending |
-| ALG-05 | — | Pending |
-| ALG-06 | — | Pending |
-| ALG-07 | — | Pending |
-| CTRL-01 | — | Pending |
-| CTRL-02 | — | Pending |
-| CTRL-03 | — | Pending |
-| CTRL-04 | — | Pending |
-| CTRL-05 | — | Pending |
-| VIZ-01 | — | Pending |
-| VIZ-02 | — | Pending |
-| VIZ-03 | — | Pending |
-| VIZ-04 | — | Pending |
-| UX-01 | — | Pending |
-| UX-02 | — | Pending |
+| INP-01 | Phase 2 | Pending |
+| INP-02 | Phase 2 | Pending |
+| INP-03 | Phase 2 | Pending |
+| ALG-01 | Phase 1 | Pending |
+| ALG-02 | Phase 1 | Pending |
+| ALG-03 | Phase 1 | Pending |
+| ALG-04 | Phase 1 | Pending |
+| ALG-05 | Phase 1 | Pending |
+| ALG-06 | Phase 1 | Pending |
+| ALG-07 | Phase 2 | Pending |
+| CTRL-01 | Phase 2 | Pending |
+| CTRL-02 | Phase 2 | Pending |
+| CTRL-03 | Phase 2 | Pending |
+| CTRL-04 | Phase 2 | Pending |
+| CTRL-05 | Phase 2 | Pending |
+| VIZ-01 | Phase 3 | Pending |
+| VIZ-02 | Phase 3 | Pending |
+| VIZ-03 | Phase 3 | Pending |
+| VIZ-04 | Phase 3 | Pending |
+| UX-01 | Phase 3 | Pending |
+| UX-02 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 21 total
-- Mapped to phases: 0
-- Unmapped: 21 ⚠️
+- Mapped to phases: 21
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after initial definition*
+*Last updated: 2026-02-14 after roadmap creation*
