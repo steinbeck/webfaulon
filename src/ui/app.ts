@@ -27,8 +27,9 @@ export interface AppState {
   rdkitReady: boolean;
   rdkitError: string;
 
-  // Worker reference
+  // Worker references
   worker: Comlink.Remote<ISAWorker> | null;
+  rawWorker: Worker | null;
 
   // Computed getters
   canStart: boolean;
@@ -70,6 +71,7 @@ export function appComponent(): AppState {
     rdkitError: '',
 
     worker: null,
+    rawWorker: null,
 
     // Computed properties
     get canStart(): boolean {
@@ -145,31 +147,33 @@ export function appComponent(): AppState {
         return;
       }
 
-      // Initialize worker
-      const WorkerClass = (await import('../worker/sa-worker?worker')).default;
-      const worker = new WorkerClass();
-      this.worker = Comlink.wrap<ISAWorker>(worker);
-
-      // Create SA parameters
-      const params: SAParams = {
-        formula: this.formula,
-        initialTemp: this.initialTemp,
-        coolingScheduleK: this.coolingScheduleK,
-        stepsPerCycle: this.stepsPerCycle,
-        numCycles: this.numCycles,
-        optimizationMode: this.optimizationMode,
-        seed: Date.now(), // Generate seed from timestamp
-      };
-
-      // Initialize SA engine
-      await this.worker.initialize(params);
-
-      // Set state to running
-      this.state = 'running';
-      this.progress = null;
-      this.result = null;
-
       try {
+        // Initialize worker using standard URL pattern (reliable with Vite)
+        this.rawWorker = new Worker(
+          new URL('../worker/sa-worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+        this.worker = Comlink.wrap<ISAWorker>(this.rawWorker);
+
+        // Create SA parameters
+        const params: SAParams = {
+          formula: this.formula,
+          initialTemp: this.initialTemp,
+          coolingScheduleK: this.coolingScheduleK,
+          stepsPerCycle: this.stepsPerCycle,
+          numCycles: this.numCycles,
+          optimizationMode: this.optimizationMode,
+          seed: Date.now(),
+        };
+
+        // Initialize SA engine in worker
+        await this.worker.initialize(params);
+
+        // Set state to running
+        this.state = 'running';
+        this.progress = null;
+        this.result = null;
+
         // Run SA with progress callback
         const result = await this.worker.run(
           Comlink.proxy((data: SAProgressData) => this.onProgress(data)),
@@ -200,13 +204,9 @@ export function appComponent(): AppState {
     },
 
     async reset() {
-      if (this.worker) {
-        await this.worker.reset();
-        // Terminate worker
-        const raw = (this.worker as any)[Comlink.proxyMarker];
-        if (raw) {
-          raw.terminate();
-        }
+      if (this.rawWorker) {
+        this.rawWorker.terminate();
+        this.rawWorker = null;
         this.worker = null;
       }
 
