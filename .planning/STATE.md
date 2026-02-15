@@ -10,9 +10,9 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Position
 
 Phase: 3.1 (inserted) — Add README and GitHub Pages deployment
-Plan: 02 of 02
+Plan: 01 of 02
 Status: In progress (1/2 plans complete)
-Last activity: 2026-02-15 — Completed 03.1-02-PLAN.md (README)
+Last activity: 2026-02-15 — Completed 03.1-01-PLAN.md (GitHub Pages Configuration)
 
 Progress: [██████████] 100% core (10/10 plans) + Phase 3.1 (1/2 plans)
 
@@ -44,7 +44,7 @@ Progress: [██████████] 100% core (10/10 plans) + Phase 3.1 (
 | 03-visualization-ux | 01 | 5 min | 2 | 6 |
 | 03-visualization-ux | 02 | 2 min | 2 | 4 |
 | 03-visualization-ux | 03 | ~90 min | 3 | 10 |
-| 03.1-add-readme-and-github-pages-deployment | 02 | 1 min | 1 | 1 |
+| 03.1-add-readme-and-github-pages-deployment | 01 | 1 min | 2 | 3 |
 
 ## Accumulated Context
 
@@ -57,6 +57,10 @@ Recent decisions affecting current work:
 - [Phase 03-03]: RDKit.js set_new_coords() required before draw_to_canvas() (zero-coord MOL blocks crash WASM)
 - [Phase 03-03]: Pipeline sends MOL block from worker; main thread derives canonical SMILES via RDKit
 - [Phase 03-03]: Added C10H16 (monoterpene isomers) to presets per user request
+- [Phase 03.1-01]: Use unpkg CDN for RDKit.js in production (node_modules not available in deployed build)
+- [Phase 03.1-01]: Pin RDKit version to 2025.3.4-1.0.0 on unpkg to match package.json
+- [Phase 03.1-01]: Use official GitHub Pages actions (not deprecated gh-pages branch approach)
+- [Phase 03.1-01]: Set base path to /webfaulon/ for GitHub Pages repository subdirectory deployment
 
 ### Roadmap Evolution
 
@@ -73,5 +77,5 @@ None — all blockers resolved.
 ## Session Continuity
 
 Last session: 2026-02-15 (Phase 3.1 execution)
-Stopped at: Completed 03.1-02-PLAN.md
+Stopped at: Completed 03.1-01-PLAN.md (GitHub Pages Configuration)
 Resume file: None
