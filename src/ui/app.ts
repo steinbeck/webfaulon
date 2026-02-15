@@ -1,77 +1,55 @@
 import * as Comlink from 'comlink';
 import { validateFormula, type ValidationResult } from './validation';
-import { PRESET_MOLECULES, type PresetMolecule } from './presets';
+import { PRESET_MOLECULES } from './presets';
 import type { ISAWorker, SAProgressData } from '../worker/types';
 import type { SAParams, SAResult } from '../core/types';
 
-export interface AppState {
-  // Formula input
-  formula: string;
-  validation: ValidationResult;
-  selectedPreset: number | null;
-  presets: PresetMolecule[];
+// Worker references kept OUTSIDE Alpine reactive state to avoid
+// Proxy-of-Proxy issues (Alpine Proxy wrapping Comlink Remote Proxy
+// causes infinite recursion / "Maximum call stack size exceeded")
+let _rawWorker: Worker | null = null;
+let _saWorker: Comlink.Remote<ISAWorker> | null = null;
 
-  // SA parameters
-  initialTemp: number;
-  coolingScheduleK: number;
-  stepsPerCycle: number;
-  numCycles: number;
-  optimizationMode: 'MAXIMIZE' | 'MINIMIZE';
-
-  // Execution state
-  state: 'idle' | 'running' | 'paused' | 'complete';
-  progress: SAProgressData | null;
-  result: SAResult | null;
-
-  // RDKit status
-  rdkitReady: boolean;
-  rdkitError: string;
-
-  // Worker references
-  worker: Comlink.Remote<ISAWorker> | null;
-  rawWorker: Worker | null;
-
-  // Computed getters
-  canStart: boolean;
-  canPause: boolean;
-  canResume: boolean;
-  totalSteps: number;
-  progressPercent: number;
-
-  // Methods
-  init(): void;
-  selectPreset(index: number | string): void;
-  validateInput(): void;
-  start(): Promise<void>;
-  pause(): void;
-  resume(): void;
-  reset(): Promise<void>;
-  onProgress(data: SAProgressData): void;
+function createWorker(): Comlink.Remote<ISAWorker> {
+  _rawWorker = new Worker(
+    new URL('../worker/sa-worker.ts', import.meta.url),
+    { type: 'module' }
+  );
+  _saWorker = Comlink.wrap<ISAWorker>(_rawWorker);
+  return _saWorker;
 }
 
-export function appComponent(): AppState {
+function destroyWorker(): void {
+  if (_rawWorker) {
+    _rawWorker.terminate();
+    _rawWorker = null;
+    _saWorker = null;
+  }
+}
+
+export function appComponent() {
   return {
-    // Initial state
+    // Formula input
     formula: '',
-    validation: { valid: false, error: '', formula: '' },
-    selectedPreset: null,
+    validation: { valid: false, error: '', formula: '' } as ValidationResult,
+    selectedPreset: null as number | null,
     presets: PRESET_MOLECULES,
 
+    // SA parameters
     initialTemp: 100,
     coolingScheduleK: 8,
     stepsPerCycle: 500,
     numCycles: 4,
-    optimizationMode: 'MINIMIZE',
+    optimizationMode: 'MINIMIZE' as 'MAXIMIZE' | 'MINIMIZE',
 
-    state: 'idle',
-    progress: null,
-    result: null,
+    // Execution state
+    state: 'idle' as 'idle' | 'running' | 'paused' | 'complete',
+    progress: null as SAProgressData | null,
+    result: null as SAResult | null,
 
+    // RDKit status
     rdkitReady: false,
     rdkitError: '',
-
-    worker: null,
-    rawWorker: null,
 
     // Computed properties
     get canStart(): boolean {
@@ -118,7 +96,6 @@ export function appComponent(): AppState {
         const msg = e instanceof Error ? e.message : 'Failed to load RDKit.js';
         this.rdkitError = msg;
         console.error('RDKit initialization failed:', e);
-        // RDKit failure is non-blocking -- SA can still run without rendering
       }
     },
 
@@ -148,12 +125,8 @@ export function appComponent(): AppState {
       }
 
       try {
-        // Initialize worker using standard URL pattern (reliable with Vite)
-        this.rawWorker = new Worker(
-          new URL('../worker/sa-worker.ts', import.meta.url),
-          { type: 'module' }
-        );
-        this.worker = Comlink.wrap<ISAWorker>(this.rawWorker);
+        // Create worker (references stored outside Alpine reactive scope)
+        const worker = createWorker();
 
         // Create SA parameters
         const params: SAParams = {
@@ -167,20 +140,35 @@ export function appComponent(): AppState {
         };
 
         // Initialize SA engine in worker
-        await this.worker.initialize(params);
+        await worker.initialize(params);
 
         // Set state to running
         this.state = 'running';
         this.progress = null;
         this.result = null;
 
+        // Capture `this` for use in callback (Alpine proxy context)
+        const self = this;
+
         // Run SA with progress callback
-        const result = await this.worker.run(
-          Comlink.proxy((data: SAProgressData) => this.onProgress(data)),
+        const result = await worker.run(
+          Comlink.proxy((data: SAProgressData) => {
+            self.progress = { ...data }; // Plain copy to avoid proxy issues
+          }),
           10 // Report every 10 steps
         );
 
-        this.result = result;
+        // Store result as plain object (strip MolGraph class instances)
+        this.result = {
+          bestEnergy: result.bestEnergy,
+          finalEnergy: result.finalEnergy,
+          initialEnergy: result.initialEnergy,
+          totalSteps: result.totalSteps,
+          acceptedMoves: result.acceptedMoves,
+          rejectedMoves: result.rejectedMoves,
+          invalidMoves: result.invalidMoves,
+          acceptanceRatio: result.acceptanceRatio,
+        } as SAResult;
         this.state = 'complete';
       } catch (e: unknown) {
         console.error('SA execution failed:', e);
@@ -190,38 +178,24 @@ export function appComponent(): AppState {
     },
 
     pause() {
-      if (this.worker && this.state === 'running') {
-        this.worker.pause();
+      if (_saWorker && this.state === 'running') {
+        _saWorker.pause();
         this.state = 'paused';
       }
     },
 
     resume() {
-      if (this.worker && this.state === 'paused') {
-        this.worker.resume();
+      if (_saWorker && this.state === 'paused') {
+        _saWorker.resume();
         this.state = 'running';
       }
     },
 
     async reset() {
-      if (this.rawWorker) {
-        this.rawWorker.terminate();
-        this.rawWorker = null;
-        this.worker = null;
-      }
-
+      destroyWorker();
       this.state = 'idle';
       this.progress = null;
       this.result = null;
-    },
-
-    onProgress(data: SAProgressData) {
-      this.progress = data;
-
-      // If worker reports completion, update state
-      if (data.isComplete && this.state === 'running') {
-        // State will be set to 'complete' when run() promise resolves
-      }
     },
   };
 }
