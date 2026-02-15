@@ -24,6 +24,7 @@ export interface SAEngineState {
   cycle: number;
   currentEnergy: number;
   bestEnergy: number;
+  bestSMILES: string;
   temperature: number;
   acceptedMoves: number;
   rejectedMoves: number;

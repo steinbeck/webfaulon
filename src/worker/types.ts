@@ -10,6 +10,7 @@ export interface SAProgressData {
   cycle: number;
   currentEnergy: number;
   bestEnergy: number;
+  bestSMILES: string;
   temperature: number;
   accepted: boolean;         // Whether the last move was accepted
   acceptedMoves: number;

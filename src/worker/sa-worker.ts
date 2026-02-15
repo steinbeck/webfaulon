@@ -41,6 +41,7 @@ class SAWorker implements ISAWorker {
           cycle: currentState.cycle,
           currentEnergy: currentState.currentEnergy,
           bestEnergy: currentState.bestEnergy,
+          bestSMILES: currentState.bestSMILES,
           temperature: currentState.temperature,
           accepted: currentState.step > 0, // Approximate - use last step's accepted
           acceptedMoves: currentState.acceptedMoves,
