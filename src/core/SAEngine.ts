@@ -12,37 +12,7 @@ import { computeWienerIndex } from './wiener';
 import { attemptDisplacement } from './displacement';
 import { SeededRandom } from './random';
 import { computeTemperature } from './cooling';
-import type { OptimizationMode, SAStepResult, SAEngineState } from './types';
-
-/**
- * Parameters for simulated annealing optimization
- */
-export interface SAParams {
-  formula: string;              // Molecular formula (e.g., "C6H14")
-  initialTemp: number;          // kT_0 (default: 100, per paper)
-  coolingScheduleK: number;     // k parameter for cooling (default: 8)
-  stepsPerCycle: number;        // Steps per temperature cycle (default: 500)
-  numCycles: number;            // Number of cooling cycles (default: 4)
-  optimizationMode: OptimizationMode; // 'MAXIMIZE' or 'MINIMIZE'
-  seed: number;                 // Random seed for reproducibility
-}
-
-/**
- * Result of simulated annealing optimization
- */
-export interface SAResult {
-  bestGraph: MolGraph;          // Graph with best energy found
-  bestEnergy: number;           // Best Wiener Index found
-  finalGraph: MolGraph;         // Final graph state
-  finalEnergy: number;          // Final Wiener Index
-  initialEnergy: number;        // Initial Wiener Index
-  totalSteps: number;           // Total SA steps executed
-  acceptedMoves: number;        // Number of accepted moves
-  rejectedMoves: number;        // Number of rejected moves (Metropolis)
-  invalidMoves: number;         // Number of invalid displacement attempts
-  acceptanceRatio: number;      // acceptedMoves / totalSteps
-  history: SAStepResult[];      // Step-by-step results for charting
-}
+import type { SAStepResult, SAEngineState, SAParams, SAResult } from './types';
 
 /**
  * Simulated Annealing Engine
