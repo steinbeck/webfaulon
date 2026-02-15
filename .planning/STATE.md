@@ -10,25 +10,25 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Position
 
 Phase: 2 of 3 (Browser Integration & Controls)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-02-15 — Completed plan 02-02 (Web Worker infrastructure with Comlink)
+Plan: 3 of 3 in current phase
+Status: Complete
+Last activity: 2026-02-15 — Completed plan 02-03 (Browser UI & Controls with Alpine.js)
 
-Progress: [███████░░░] 67% (Phase 2: 2/3 plans complete)
+Progress: [██████████] 100% (Phase 2: 3/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
-- Average duration: 5.5 min
-- Total execution time: 0.55 hours
+- Total plans completed: 7
+- Average duration: 18.4 min
+- Total execution time: 2.15 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-molecular-graph-sa-core | 4 | 28 min | 7.0 min |
-| 02-browser-integration-controls | 2 | 6 min | 3.0 min |
+| 02-browser-integration-controls | 3 | 96 min | 32.0 min |
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -38,6 +38,7 @@ Progress: [███████░░░] 67% (Phase 2: 2/3 plans complete)
 | 01-molecular-graph-sa-core | 04 | 10 min | 3 | 4 |
 | 02-browser-integration-controls | 01 | 3 min | 2 | 3 |
 | 02-browser-integration-controls | 02 | 3 min | 3 | 10 |
+| 02-browser-integration-controls | 03 | 90 min | 4 | 10 |
 
 ## Accumulated Context
 
@@ -64,6 +65,11 @@ Recent decisions affecting current work:
 - [Phase 02-02]: Singleton SAWorker instance exposed via Comlink (simpler lifecycle than class exposure)
 - [Phase 02-02]: Moved SAParams and SAResult to shared types.ts for cross-module type safety
 - [Phase 02-02]: Periodic yield every 100 steps ensures pause/resume messages can be processed
+- [Phase 02-03]: Two-stage formula validation (regex format + chemical validity via parseFormula + HDI)
+- [Phase 02-03]: 5 preset molecules selected to demonstrate different SA behaviors (size and unsaturation variety)
+- [Phase 02-03]: Alpine.js for reactive UI (lightweight, suitable for classroom projection)
+- [Phase 02-03]: RDKit.js loaded via CDN script tag (library exposes global, not ES module)
+- [Phase 02-03]: Module-level worker references outside Alpine reactive scope (prevents Proxy-of-Proxy conflicts with Comlink)
 
 ### Pending Todos
 
@@ -81,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-15 (phase 2 in progress)
-Stopped at: Completed 02-02-PLAN.md — Web Worker infrastructure with Comlink. Ready for plan 02-03 (Progress UI with Alpine.js).
+Last session: 2026-02-15 (Phase 2 complete)
+Stopped at: Completed 02-03-PLAN.md — Browser UI & Controls with Alpine.js. Phase 2 complete (3/3 plans). Ready for Phase 3 (Visualization & Polish).
 Resume file: None
