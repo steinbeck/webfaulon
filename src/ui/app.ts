@@ -3,6 +3,8 @@ import { validateFormula, type ValidationResult } from './validation';
 import { PRESET_MOLECULES } from './presets';
 import type { ISAWorker, SAProgressData } from '../worker/types';
 import type { SAParams, SAResult } from '../core/types';
+import { createWienerChart, addChartDataPoint, resetChart } from './chart';
+import { renderMolecule, clearMoleculeCanvas } from './molecule-renderer';
 
 // Worker references kept OUTSIDE Alpine reactive state to avoid
 // Proxy-of-Proxy issues (Alpine Proxy wrapping Comlink Remote Proxy
@@ -46,6 +48,7 @@ export function appComponent() {
     state: 'idle' as 'idle' | 'running' | 'paused' | 'complete',
     progress: null as SAProgressData | null,
     result: null as SAResult | null,
+    _prevBestEnergy: null as number | null,
 
     // RDKit status
     rdkitReady: false,
@@ -92,6 +95,19 @@ export function appComponent() {
 
         // Store RDKit instance for later use (Phase 3 rendering)
         (window as any).__rdkit = RDKit;
+
+        // Initialize chart on canvas (after Alpine has rendered the DOM)
+        // Use queueMicrotask to defer until after Alpine reactive updates
+        queueMicrotask(() => {
+          const chartCanvas = document.getElementById('wiener-chart') as HTMLCanvasElement;
+          if (chartCanvas) {
+            createWienerChart(chartCanvas);
+          }
+          const molCanvas = document.getElementById('molecule-canvas') as HTMLCanvasElement;
+          if (molCanvas) {
+            clearMoleculeCanvas(molCanvas);
+          }
+        });
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : 'Failed to load RDKit.js';
         this.rdkitError = msg;
@@ -153,7 +169,19 @@ export function appComponent() {
         // Run SA with progress callback
         const result = await worker.run(
           Comlink.proxy((data: SAProgressData) => {
-            self.progress = { ...data }; // Plain copy to avoid proxy issues
+            self.progress = { ...data } as SAProgressData; // Plain copy to avoid proxy issues
+
+            // Update chart with new data point
+            addChartDataPoint(data.step, data.bestEnergy);
+
+            // Re-render molecule only when best energy changes (new best structure found)
+            if (data.bestSMILES && data.bestEnergy !== self._prevBestEnergy) {
+              const molCanvas = document.getElementById('molecule-canvas') as HTMLCanvasElement;
+              if (molCanvas) {
+                renderMolecule(data.bestSMILES, molCanvas);
+              }
+              self._prevBestEnergy = data.bestEnergy;
+            }
           }),
           10 // Report every 10 steps
         );
@@ -170,6 +198,15 @@ export function appComponent() {
           acceptanceRatio: result.acceptanceRatio,
         } as SAResult;
         this.state = 'complete';
+
+        // Render final best molecule
+        const progressData = this.progress as SAProgressData | null;
+        if (progressData && progressData.bestSMILES) {
+          const molCanvas = document.getElementById('molecule-canvas') as HTMLCanvasElement;
+          if (molCanvas) {
+            renderMolecule(progressData.bestSMILES, molCanvas);
+          }
+        }
       } catch (e: unknown) {
         console.error('SA execution failed:', e);
         this.state = 'idle';
@@ -193,6 +230,12 @@ export function appComponent() {
 
     async reset() {
       destroyWorker();
+      resetChart();
+      this._prevBestEnergy = null;
+      const molCanvas = document.getElementById('molecule-canvas') as HTMLCanvasElement;
+      if (molCanvas) {
+        clearMoleculeCanvas(molCanvas);
+      }
       this.state = 'idle';
       this.progress = null;
       this.result = null;
