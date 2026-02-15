@@ -140,7 +140,7 @@ export class SAEngine {
       cycle,
       currentEnergy: this.currentEnergy,
       bestEnergy: this.bestEnergy,
-      bestSMILES: this.bestGraph.toSMILES(),
+      bestMolBlock: this.bestGraph.toMolBlock(),
       temperature: this.currentTemperature,
       acceptedMoves: this.acceptedMoves,
       rejectedMoves: this.rejectedMoves,

@@ -49,6 +49,7 @@ export function appComponent() {
     progress: null as SAProgressData | null,
     result: null as SAResult | null,
     _prevBestEnergy: null as number | null,
+    bestSMILES: '' as string,
 
     // RDKit status
     rdkitReady: false,
@@ -175,10 +176,13 @@ export function appComponent() {
             addChartDataPoint(data.step, data.bestEnergy);
 
             // Re-render molecule only when best energy changes (new best structure found)
-            if (data.bestSMILES && data.bestEnergy !== self._prevBestEnergy) {
+            if (data.bestMolBlock && data.bestEnergy !== self._prevBestEnergy) {
               const molCanvas = document.getElementById('molecule-canvas') as HTMLCanvasElement;
               if (molCanvas) {
-                renderMolecule(data.bestSMILES, molCanvas);
+                const smiles = renderMolecule(data.bestMolBlock, molCanvas);
+                if (smiles) {
+                  self.bestSMILES = smiles;
+                }
               }
               self._prevBestEnergy = data.bestEnergy;
             }
@@ -201,10 +205,13 @@ export function appComponent() {
 
         // Render final best molecule
         const progressData = this.progress as SAProgressData | null;
-        if (progressData && progressData.bestSMILES) {
+        if (progressData && progressData.bestMolBlock) {
           const molCanvas = document.getElementById('molecule-canvas') as HTMLCanvasElement;
           if (molCanvas) {
-            renderMolecule(progressData.bestSMILES, molCanvas);
+            const smiles = renderMolecule(progressData.bestMolBlock, molCanvas);
+            if (smiles) {
+              this.bestSMILES = smiles;
+            }
           }
         }
       } catch (e: unknown) {
@@ -232,6 +239,7 @@ export function appComponent() {
       destroyWorker();
       resetChart();
       this._prevBestEnergy = null;
+      this.bestSMILES = '';
       const molCanvas = document.getElementById('molecule-canvas') as HTMLCanvasElement;
       if (molCanvas) {
         clearMoleculeCanvas(molCanvas);

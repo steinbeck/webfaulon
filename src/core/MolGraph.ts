@@ -159,105 +159,67 @@ export class MolGraph {
   }
 
   /**
-   * Generate a SMILES string representation of this molecular graph
+   * Generate a V2000 MOL block representation of this molecular graph.
    *
-   * Uses DFS-based SMILES generation. This produces valid (but non-canonical) SMILES
-   * that can be parsed by RDKit.js. Canonicalization is RDKit's responsibility.
+   * MOL blocks are trivially correct from an adjacency matrix — just list
+   * atoms with dummy coordinates and bonds from the upper triangle.
+   * No ring-closure logic needed (unlike SMILES).
    *
-   * @returns SMILES string representation
+   * Use RDKit.js to parse the MOL block and call get_smiles() for canonical SMILES.
+   *
+   * @returns V2000 MOL block string
    */
-  toSMILES(): string {
-    if (this.atoms.length === 0) {
+  toMolBlock(): string {
+    const n = this.atoms.length;
+    if (n === 0) {
       return '';
     }
 
-    const n = this.atoms.length;
-
-    // Build adjacency list from bond matrix
-    const adjacency: number[][] = Array(n).fill(0).map(() => []);
+    // Collect bonds from upper triangle of bond matrix
+    const bondList: { i: number; j: number; order: number }[] = [];
     for (let i = 0; i < n; i++) {
       for (let j = i + 1; j < n; j++) {
-        if (this.bonds[i]![j]! > 0) {
-          adjacency[i]!.push(j);
-          adjacency[j]!.push(i);
+        const order = this.bonds[i]![j]!;
+        if (order > 0) {
+          bondList.push({ i, j, order });
         }
       }
     }
 
-    // Two-pass approach: SMILES ring closure digits must appear at BOTH
-    // endpoints. Since atom B is output before we discover the back-edge
-    // at atom A, we pre-discover all ring closures first.
+    const lines: string[] = [];
 
-    // Pass 1: DFS to discover ring closures (back edges)
-    const visited1 = new Array(n).fill(false);
-    let nextRingNum = 1;
-    const ringEdges = new Set<string>();
-    // atom → [{ringNum, bondOrder}] for digits to emit at each atom
-    const ringDigitsAt = new Map<number, Array<{ ringNum: number; bondOrder: number }>>();
+    // Header block: 3 lines
+    lines.push(''); // molecule name (blank)
+    lines.push('  WebFaulon'); // program/timestamp
+    lines.push(''); // comment (blank)
 
-    const prePassDFS = (atomIdx: number, parentIdx: number): void => {
-      visited1[atomIdx] = true;
-      for (const neighbor of adjacency[atomIdx]!) {
-        if (neighbor === parentIdx) continue;
-        if (visited1[neighbor]) {
-          const edgeKey = atomIdx < neighbor
-            ? `${atomIdx}-${neighbor}`
-            : `${neighbor}-${atomIdx}`;
-          if (!ringEdges.has(edgeKey)) {
-            ringEdges.add(edgeKey);
-            const ringNum = nextRingNum++;
-            const bondOrder = this.bonds[atomIdx]![neighbor]!;
-            // Add digit at BOTH endpoints
-            if (!ringDigitsAt.has(atomIdx)) ringDigitsAt.set(atomIdx, []);
-            ringDigitsAt.get(atomIdx)!.push({ ringNum, bondOrder });
-            if (!ringDigitsAt.has(neighbor)) ringDigitsAt.set(neighbor, []);
-            ringDigitsAt.get(neighbor)!.push({ ringNum, bondOrder });
-          }
-        } else {
-          prePassDFS(neighbor, atomIdx);
-        }
-      }
-    };
+    // Counts line: aaabbblllfffcccsssxxxrrrpppiiimmmvvvvvv
+    const atomCount = n.toString().padStart(3);
+    const bondCount = bondList.length.toString().padStart(3);
+    lines.push(`${atomCount}${bondCount}  0  0  0  0  0  0  0  0999 V2000`);
 
-    prePassDFS(0, -1);
+    // Atom block: x(10.4f) y(10.4f) z(10.4f) SPACE symbol(%-3s) massDiff(%2d) charge(%3d) ...
+    // Use dummy coordinates (0,0,0) — RDKit will compute 2D coords for rendering
+    for (let i = 0; i < n; i++) {
+      const elem = this.atoms[i]!.element;
+      const coords = '    0.0000    0.0000    0.0000';
+      const symbol = elem.padEnd(3); // 3-char left-justified: "C  " or "Cl "
+      lines.push(`${coords} ${symbol} 0  0  0  0  0  0  0  0  0  0  0  0`);
+    }
 
-    // Pass 2: DFS to generate SMILES string
-    const visited2 = new Array(n).fill(false);
+    // Bond block: atom1 atom2 type ...
+    // V2000 atom indices are 1-based
+    for (const bond of bondList) {
+      const a1 = (bond.i + 1).toString().padStart(3);
+      const a2 = (bond.j + 1).toString().padStart(3);
+      const bt = bond.order.toString().padStart(3);
+      lines.push(`${a1}${a2}${bt}  0  0  0  0`);
+    }
 
-    const mainDFS = (atomIdx: number, parentIdx: number): string => {
-      visited2[atomIdx] = true;
-      let smiles = this.atoms[atomIdx]!.element;
+    // End marker
+    lines.push('M  END');
 
-      // Emit ring closure digits for this atom
-      const digits = ringDigitsAt.get(atomIdx);
-      if (digits) {
-        for (const { ringNum } of digits) {
-          smiles += ringNum.toString();
-        }
-      }
-
-      // Traverse unvisited neighbors (tree edges only)
-      let firstBranch = true;
-      for (const neighbor of adjacency[atomIdx]!) {
-        if (neighbor === parentIdx || visited2[neighbor]) continue;
-
-        const bondOrder = this.bonds[atomIdx]![neighbor]!;
-        let bondSymbol = '';
-        if (bondOrder === 2) bondSymbol = '=';
-        else if (bondOrder === 3) bondSymbol = '#';
-
-        if (firstBranch) {
-          smiles += bondSymbol + mainDFS(neighbor, atomIdx);
-          firstBranch = false;
-        } else {
-          smiles += '(' + bondSymbol + mainDFS(neighbor, atomIdx) + ')';
-        }
-      }
-
-      return smiles;
-    };
-
-    return mainDFS(0, -1);
+    return lines.join('\n');
   }
 
   // Factory methods for testing

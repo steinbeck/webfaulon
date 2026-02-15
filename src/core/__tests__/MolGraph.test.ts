@@ -275,66 +275,47 @@ describe('MolGraph', () => {
     });
   });
 
-  describe('toSMILES', () => {
-    it('should generate SMILES for methane (C1)', () => {
+  describe('toMolBlock', () => {
+    it('should return empty string for empty graph', () => {
+      const graph = new MolGraph([], []);
+      expect(graph.toMolBlock()).toBe('');
+    });
+
+    it('should generate valid MOL block for methane (C1)', () => {
       const graph = MolGraph.createLinearAlkane(1);
-      const smiles = graph.toSMILES();
-      expect(smiles).toBe('C');
+      const molBlock = graph.toMolBlock();
+      expect(molBlock).toContain('V2000');
+      expect(molBlock).toContain('M  END');
+      // 1 atom, 0 bonds
+      expect(molBlock).toContain('  1  0  0  0  0  0  0  0  0  0999 V2000');
+      // Atom line should contain C
+      expect(molBlock).toContain(' C ');
     });
 
-    it('should generate SMILES for ethane (C2)', () => {
+    it('should generate valid MOL block for ethane (C2)', () => {
       const graph = MolGraph.createLinearAlkane(2);
-      const smiles = graph.toSMILES();
-      expect(smiles).toBe('CC');
+      const molBlock = graph.toMolBlock();
+      // 2 atoms, 1 bond
+      expect(molBlock).toContain('  2  1  0  0  0  0  0  0  0  0999 V2000');
+      // Bond line: atom 1 to atom 2, single bond
+      expect(molBlock).toContain('  1  2  1  0  0  0  0');
     });
 
-    it('should generate SMILES for n-hexane (C6)', () => {
+    it('should generate correct atom and bond counts for n-hexane', () => {
       const graph = MolGraph.createLinearAlkane(6);
-      const smiles = graph.toSMILES();
-      expect(smiles).toBe('CCCCCC');
+      const molBlock = graph.toMolBlock();
+      // 6 atoms, 5 bonds
+      expect(molBlock).toContain('  6  5  0  0  0  0  0  0  0  0999 V2000');
     });
 
-    it('should generate SMILES with branch notation for isobutane', () => {
-      const graph = MolGraph.createBranched('isobutane');
-      const smiles = graph.toSMILES();
-      // Valid SMILES for isobutane: CC(C)C or C(C)CC or C(C)(C)C
-      expect(smiles).toBeTruthy();
-      expect(smiles.length).toBeGreaterThan(0);
-      // Should contain 4 C's
-      const cCount = (smiles.match(/C/g) || []).length;
-      expect(cCount).toBe(4);
-      // Should contain parentheses for branching
-      expect(smiles).toMatch(/\(/);
-      expect(smiles).toMatch(/\)/);
-    });
-
-    it('should generate SMILES with branch notation for neopentane', () => {
-      const graph = MolGraph.createBranched('neopentane');
-      const smiles = graph.toSMILES();
-      expect(smiles).toBeTruthy();
-      expect(smiles.length).toBeGreaterThan(0);
-      // Should contain 5 C's
-      const cCount = (smiles.match(/C/g) || []).length;
-      expect(cCount).toBe(5);
-      // Should contain parentheses for branching
-      expect(smiles).toMatch(/\(/);
-      expect(smiles).toMatch(/\)/);
-    });
-
-    it('should generate SMILES with ring closure for cyclohexane', () => {
+    it('should generate correct bond count for cyclohexane (ring)', () => {
       const graph = MolGraph.createCyclohexane();
-      const smiles = graph.toSMILES();
-      expect(smiles).toBeTruthy();
-      expect(smiles.length).toBeGreaterThan(0);
-      // Should contain 6 C's
-      const cCount = (smiles.match(/C/g) || []).length;
-      expect(cCount).toBe(6);
-      // Should contain ring closure digit (1-9)
-      expect(smiles).toMatch(/\d/);
+      const molBlock = graph.toMolBlock();
+      // 6 atoms, 6 bonds (ring has same number of bonds as atoms)
+      expect(molBlock).toContain('  6  6  0  0  0  0  0  0  0  0999 V2000');
     });
 
-    it('should generate SMILES with double bond notation (ethene)', () => {
-      // Create ethene: C=C (2 carbons, bond order 2)
+    it('should encode double bonds correctly (ethene)', () => {
       const atoms: Atom[] = [
         { element: 'C', implicitH: 0 },
         { element: 'C', implicitH: 0 },
@@ -344,12 +325,12 @@ describe('MolGraph', () => {
         [2, 0],
       ];
       const graph = new MolGraph(atoms, bonds);
-      const smiles = graph.toSMILES();
-      expect(smiles).toBe('C=C');
+      const molBlock = graph.toMolBlock();
+      // Bond type 2 for double bond
+      expect(molBlock).toContain('  1  2  2  0  0  0  0');
     });
 
-    it('should generate SMILES with triple bond notation (ethyne)', () => {
-      // Create ethyne: C#C (2 carbons, bond order 3)
+    it('should encode triple bonds correctly (ethyne)', () => {
       const atoms: Atom[] = [
         { element: 'C', implicitH: 0 },
         { element: 'C', implicitH: 0 },
@@ -359,12 +340,12 @@ describe('MolGraph', () => {
         [3, 0],
       ];
       const graph = new MolGraph(atoms, bonds);
-      const smiles = graph.toSMILES();
-      expect(smiles).toBe('C#C');
+      const molBlock = graph.toMolBlock();
+      // Bond type 3 for triple bond
+      expect(molBlock).toContain('  1  2  3  0  0  0  0');
     });
 
-    it('should generate SMILES with heteroatoms (methanol)', () => {
-      // Create methanol: C-O
+    it('should include heteroatoms correctly (methanol)', () => {
       const atoms: Atom[] = [
         { element: 'C', implicitH: 0 },
         { element: 'O', implicitH: 0 },
@@ -374,23 +355,37 @@ describe('MolGraph', () => {
         [1, 0],
       ];
       const graph = new MolGraph(atoms, bonds);
-      const smiles = graph.toSMILES();
-      expect(smiles).toBeTruthy();
-      expect(smiles.length).toBeGreaterThan(0);
-      expect(smiles).toContain('C');
-      expect(smiles).toContain('O');
+      const molBlock = graph.toMolBlock();
+      expect(molBlock).toContain(' C ');
+      expect(molBlock).toContain(' O ');
     });
 
-    it('should generate valid SMILES for linear alkanes (round-trip validation)', () => {
-      // For linear alkanes n=3 to 8, verify SMILES is non-empty and has correct structure
-      for (let n = 3; n <= 8; n++) {
-        const graph = MolGraph.createLinearAlkane(n);
-        const smiles = graph.toSMILES();
-        expect(smiles).toBeTruthy();
-        expect(smiles.length).toBe(n); // Linear alkane SMILES should be n C's
-        const cCount = (smiles.match(/C/g) || []).length;
-        expect(cCount).toBe(n);
+    it('should use 1-based atom indices in bond block', () => {
+      const graph = MolGraph.createBranched('isobutane');
+      const molBlock = graph.toMolBlock();
+      const lines = molBlock.split('\n');
+      // Find bond lines (after atom block, before M  END)
+      // Bond lines have exactly the pattern: 3-digit atom1, 3-digit atom2, 3-digit type, then "  0  0  0  0"
+      const mEndIdx = lines.findIndex(l => l.trim() === 'M  END');
+      const countsIdx = 3; // Line index 3 is the counts line
+      // Bond lines are between atom block and M  END
+      // Atom block starts at index 4, has 4 atoms, so bonds start at index 8
+      const bondLines = lines.slice(countsIdx + 1 + 4, mEndIdx);
+      // Isobutane: 3 bonds (0-1, 0-2, 0-3 → 1-2, 1-3, 1-4 in 1-based)
+      expect(bondLines.length).toBe(3);
+      // All bond indices should be >= 1 (1-based)
+      for (const line of bondLines) {
+        const parts = line.trim().split(/\s+/).map(Number);
+        expect(parts[0]).toBeGreaterThanOrEqual(1);
+        expect(parts[1]).toBeGreaterThanOrEqual(1);
       }
+    });
+
+    it('should produce consistent output for same graph', () => {
+      const graph = MolGraph.createLinearAlkane(4);
+      const molBlock1 = graph.toMolBlock();
+      const molBlock2 = graph.toMolBlock();
+      expect(molBlock1).toBe(molBlock2);
     });
   });
 });

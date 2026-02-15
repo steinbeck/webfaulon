@@ -34,6 +34,11 @@ export const PRESET_MOLECULES: PresetMolecule[] = [
     description: 'Larger saturated chain. 75 constitutional isomers. Longer SA runs.'
   },
   {
+    name: 'Monoterpene isomers',
+    formula: 'C10H16',
+    description: '4 degrees of unsaturation. Rich ring/double-bond isomer space.'
+  },
+  {
     name: 'Naphthalene isomers',
     formula: 'C10H8',
     description: 'Highly unsaturated. Fused ring systems possible.'
