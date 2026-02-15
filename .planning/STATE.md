@@ -5,22 +5,22 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time — making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** All 3 phases complete — milestone 1 delivered
+**Current focus:** Phase 3.1 — Add README and GitHub Pages deployment
 
 ## Current Position
 
-Phase: 3 of 3 (Visualization & UX)
-Plan: 3 of 3 in current phase
-Status: Complete
-Last activity: 2026-02-15 — Completed plan 03-03 (UI Integration & Responsive Redesign), all phases done
+Phase: 3.1 (inserted) — Add README and GitHub Pages deployment
+Plan: 02 of 02
+Status: In progress (1/2 plans complete)
+Last activity: 2026-02-15 — Completed 03.1-02-PLAN.md (README)
 
-Progress: [██████████] 100% (All 3 phases complete, 10/10 plans executed)
+Progress: [██████████] 100% core (10/10 plans) + Phase 3.1 (1/2 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 10
-- Average duration: ~14 min
+- Total plans completed: 11
+- Average duration: ~13 min
 - Total execution time: ~2.5 hours
 
 **By Phase:**
@@ -30,6 +30,7 @@ Progress: [██████████] 100% (All 3 phases complete, 10/10 pl
 | 01-molecular-graph-sa-core | 4 | 28 min | 7.0 min |
 | 02-browser-integration-controls | 3 | 96 min | 32.0 min |
 | 03-visualization-ux | 3 | ~100 min | ~33 min |
+| 03.1-add-readme-and-github-pages-deployment | 1/2 | 1 min | 1.0 min |
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -43,6 +44,7 @@ Progress: [██████████] 100% (All 3 phases complete, 10/10 pl
 | 03-visualization-ux | 01 | 5 min | 2 | 6 |
 | 03-visualization-ux | 02 | 2 min | 2 | 4 |
 | 03-visualization-ux | 03 | ~90 min | 3 | 10 |
+| 03.1-add-readme-and-github-pages-deployment | 02 | 1 min | 1 | 1 |
 
 ## Accumulated Context
 
@@ -56,6 +58,10 @@ Recent decisions affecting current work:
 - [Phase 03-03]: Pipeline sends MOL block from worker; main thread derives canonical SMILES via RDKit
 - [Phase 03-03]: Added C10H16 (monoterpene isomers) to presets per user request
 
+### Roadmap Evolution
+
+- Phase 3.1 inserted after Phase 3: Add README and GitHub Pages deployment (URGENT)
+
 ### Pending Todos
 
 None.
@@ -66,6 +72,6 @@ None — all blockers resolved.
 
 ## Session Continuity
 
-Last session: 2026-02-15 (All phases complete)
-Stopped at: Milestone 1 complete — all 3 phases delivered, 10/10 plans executed.
+Last session: 2026-02-15 (Phase 3.1 execution)
+Stopped at: Completed 03.1-02-PLAN.md
 Resume file: None
