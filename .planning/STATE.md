@@ -10,24 +10,25 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Position
 
 Phase: 2 of 3 (Browser Integration & Controls)
-Plan: 0 of TBD in current phase
-Status: Not started — needs planning
-Last activity: 2026-02-14 — Phase 1 verified and marked complete (139 tests, 5/5 criteria passed)
+Plan: 1 of 3 in current phase
+Status: In progress
+Last activity: 2026-02-15 — Completed plan 02-01 (Step-by-step SA execution API)
 
-Progress: [░░░░░░░░░░] 0% (Phase 2 not yet planned)
+Progress: [███░░░░░░░] 33% (Phase 2: 1/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 7.0 min
-- Total execution time: 0.47 hours
+- Total plans completed: 5
+- Average duration: 6.2 min
+- Total execution time: 0.52 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-molecular-graph-sa-core | 4 | 28 min | 7.0 min |
+| 02-browser-integration-controls | 1 | 3 min | 3.0 min |
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -35,6 +36,7 @@ Progress: [░░░░░░░░░░] 0% (Phase 2 not yet planned)
 | 01-molecular-graph-sa-core | 02 | 4 min | 3 | 4 |
 | 01-molecular-graph-sa-core | 03 | 8 min | 3 | 4 |
 | 01-molecular-graph-sa-core | 04 | 10 min | 3 | 4 |
+| 02-browser-integration-controls | 01 | 3 min | 2 | 3 |
 
 ## Accumulated Context
 
@@ -55,6 +57,9 @@ Recent decisions affecting current work:
 - [Phase 01-03]: Return null for invalid displacements rather than retry internally (SA engine controls retry logic)
 - [Phase 01-04]: Class-based SAEngine with private state management (clean API, encapsulates SA state)
 - [Phase 01-04]: Extract isBetter() helper method in refactor phase (eliminates duplication, single source of truth)
+- [Phase 02-01]: Refactored run() to delegate to init()+step()+getResult() for single code path
+- [Phase 02-01]: getState() returns snapshot (not live reference) for safe cross-thread sharing
+- [Phase 02-01]: Error throwing on invalid method call sequences (step before init, getResult before complete)
 
 ### Pending Todos
 
@@ -72,6 +77,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-14 (phase 1 complete)
-Stopped at: Phase 1 verified complete — 139 tests, 5/5 success criteria, 6/6 requirements. Ready for Phase 2 planning.
+Last session: 2026-02-15 (phase 2 in progress)
+Stopped at: Completed 02-01-PLAN.md — Step-by-step SA execution API. Ready for plan 02-02 (Web Worker integration).
 Resume file: None
