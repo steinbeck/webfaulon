@@ -3,57 +3,111 @@
 **Defined:** 2026-02-14
 **Core Value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time — making the abstract algorithm from the paper tangible and intuitive.
 
-## v1 Requirements
+## v1.0 Requirements (Complete)
 
-Requirements for initial release. Each maps to roadmap phases.
+All v1.0 requirements delivered. See MILESTONES.md for archive.
 
 ### Input
 
 - [x] **INP-01**: User can enter any molecular formula (e.g., C6H14, C8H10) to define the constitutional isomer space
 - [x] **INP-02**: Formula is validated before SA starts (invalid formulas rejected with clear error message)
-- [x] **INP-03**: Preset example molecules (3-5 curated) available for quick start without needing to know valid formulas
+- [x] **INP-03**: Preset example molecules (3-5 curated) available for quick start
 
 ### Algorithm
 
-- [x] **ALG-01**: SA implements Faulon's displacement: pick 4 atoms (x1, y1, x2, y2), redistribute bond orders per equations 7-11 while preserving valences
-- [x] **ALG-02**: Initial structure generated deterministically from the molecular formula (valid connectivity and valences)
-- [x] **ALG-03**: Wiener Index computed as cost function (half-sum of all shortest path distances between atom pairs in heavy-atom graph)
+- [x] **ALG-01**: SA implements Faulon's displacement: pick 4 atoms, redistribute bond orders per equations 7-11
+- [x] **ALG-02**: Initial structure generated deterministically from the molecular formula
+- [x] **ALG-03**: Wiener Index computed as cost function
 - [x] **ALG-04**: User can toggle between maximizing and minimizing the Wiener Index
-- [x] **ALG-05**: SA accepts/rejects moves using Metropolis criterion: accept if delta_e < 0 (improving), else accept with probability exp(-delta_e/kT)
-- [x] **ALG-06**: Graph connectivity validated after every SA move (disconnected fragments rejected, molecule stays connected)
-- [x] **ALG-07**: Algorithm runs entirely in-browser via Web Worker (no backend required, UI stays responsive during computation)
+- [x] **ALG-05**: SA accepts/rejects moves using Metropolis criterion
+- [x] **ALG-06**: Graph connectivity validated after every SA move
+- [x] **ALG-07**: Algorithm runs entirely in-browser via Web Worker
 
 ### Controls
 
-- [x] **CTRL-01**: User can set initial temperature (kT) with sensible default (kT=100 per paper)
-- [x] **CTRL-02**: User can select cooling schedule from f0 through f32 family as described in paper (kT_t = kT_0 - k * kT_0 * t / delta_t, clamped to 0)
-- [x] **CTRL-03**: User can set number of steps per cycle (default 500 per paper)
-- [x] **CTRL-04**: User can set number of cycles (default 4-8 per paper)
+- [x] **CTRL-01**: User can set initial temperature (kT)
+- [x] **CTRL-02**: User can select cooling schedule from f0 through f32 family
+- [x] **CTRL-03**: User can set number of steps per cycle
+- [x] **CTRL-04**: User can set number of cycles
 - [x] **CTRL-05**: User can play, pause, and reset the SA execution
 
 ### Visualization
 
-- [ ] **VIZ-01**: Live-updating chart shows Wiener Index vs step number as the algorithm runs (like Figure 4 in paper)
-- [ ] **VIZ-02**: Current best isomer rendered as 2D chemical structure using RDKit.js (WASM)
-- [ ] **VIZ-03**: Best Wiener Index score displayed alongside the structure
-- [ ] **VIZ-04**: Real-time algorithm state display (current step, temperature, current/best Wiener Index)
+- [x] **VIZ-01**: Live-updating chart shows Wiener Index vs step number
+- [x] **VIZ-02**: Current best isomer rendered as 2D chemical structure
+- [x] **VIZ-03**: Best Wiener Index score displayed alongside the structure
+- [x] **VIZ-04**: Real-time algorithm state display (step, temperature, current/best score)
 
 ### User Experience
 
-- [ ] **UX-01**: Clean design suitable for classroom projection/demonstration (readable fonts, good contrast)
-- [ ] **UX-02**: Mobile responsive layout (works on tablets and phones for BYOD classroom use)
+- [x] **UX-01**: Clean design suitable for classroom projection
+- [x] **UX-02**: Mobile responsive layout
 
-## v2 Requirements
+## v2.0 Requirements
+
+Requirements for Python backend migration. Each maps to roadmap phases.
+
+### Backend Foundation (BACK)
+
+- [ ] **BACK-01**: FastAPI application serves REST endpoints with automatic OpenAPI docs
+- [ ] **BACK-02**: CORS middleware allows frontend origin (GitHub Pages + localhost dev)
+- [ ] **BACK-03**: Health check endpoint returns server status
+- [ ] **BACK-04**: API returns structured JSON error responses with HTTP codes (400/404/409/500)
+
+### RDKit Molecular Operations (MOL)
+
+- [ ] **MOL-01**: Backend validates molecular formulas using RDKit before accepting SA configuration
+- [ ] **MOL-02**: Faulon displacement (eqs 7-11) operates on RDKit RWMol with SanitizeMol validation
+- [ ] **MOL-03**: Backend generates 2D SVG molecule depictions via RDKit MolDraw2DSVG
+- [ ] **MOL-04**: Backend produces canonical SMILES via RDKit MolToSmiles
+
+### SA Engine (SA)
+
+- [ ] **SA-01**: Python SAEngine implements Metropolis criterion with configurable cooling schedules
+- [ ] **SA-02**: Initial molecular structure generated deterministically from formula using RDKit
+- [ ] **SA-03**: SA execution runs in background (non-blocking) — server remains responsive during optimization
+- [ ] **SA-04**: Session state persisted in-memory with configurable TTL
+
+### API & Streaming (API)
+
+- [ ] **API-01**: POST endpoint accepts SA configuration (formula, parameters, component weights) and returns session ID
+- [ ] **API-02**: SSE endpoint streams live SA progress events (step, temperature, energy, best molecule SVG)
+- [ ] **API-03**: Control endpoints for start, pause, and reset SA execution
+- [ ] **API-04**: Status endpoint returns current SA state for client reconnection
+
+### Target Function (TGT)
+
+- [ ] **TGT-01**: Multi-component target function framework with pluggable scoring components
+- [ ] **TGT-02**: Wiener Index implemented as first scoring component
+- [ ] **TGT-03**: Each component contributes weighted score to overall objective
+
+### Frontend Migration (FE)
+
+- [ ] **FE-01**: Frontend communicates with backend via REST API + EventSource (no Web Worker)
+- [ ] **FE-02**: Live chart updates from SSE events maintain v1 UX responsiveness
+- [ ] **FE-03**: Molecule rendering displays backend-generated SVG (no RDKit.js WASM)
+- [ ] **FE-04**: Same UX preserved: formula input, presets, parameter controls, start/pause/reset
+
+### Deployment (DEP)
+
+- [ ] **DEP-01**: Backend deployable to cloud platform (Railway/Render/Fly.io)
+- [ ] **DEP-02**: Frontend configurable for production backend URL
+- [ ] **DEP-03**: Production CORS locked to deployment domain
+
+## v2.1+ Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
 
-### Enhanced Interaction
+### Enhanced Multi-Component
 
-- **ENHI-01**: Step-by-step mode allowing manual advancement one SA iteration at a time
-- **ENHI-02**: Detailed acceptance log showing each proposed move, energy delta, and acceptance decision with probability
-- **ENHI-03**: Download results (structure as PNG/SVG image, optimization data as CSV)
-- **ENHI-04**: Visual molecule transitions animating bond changes during displacement operation
-- **ENHI-05**: Optimization metrics dashboard (acceptance rate over time, energy delta distribution)
+- **TGT-04**: Adjustable component weights configurable via API
+- **TGT-05**: Component-wise score streaming in SSE events (breakdown per component)
+- **TGT-06**: RDKit descriptor calculation API exposing 200+ molecular descriptors
+
+### Operations
+
+- **API-05**: Graceful cancellation endpoint for long-running SA
+- **SA-05**: Concurrent session support via async task status
 
 ## Out of Scope
 
@@ -61,20 +115,21 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Feature | Reason |
 |---------|--------|
-| User accounts/login | Unnecessary complexity for educational demo; students won't create accounts for one-off use |
-| 3D molecular visualization | Wiener Index is about graph topology (2D connectivity), not 3D geometry; adds no educational value |
-| Database of molecules | Scope creep; 3-5 curated presets sufficient; link to PubChem if students want more |
-| Backend/server computation | RDKit.js WASM proves complex cheminformatics runs in browser; no server simplifies deployment |
-| Multi-objective optimization | Wiener Index is the sole metric in Faulon 1996 paper; adding objectives dilutes educational focus |
-| Collaborative/sharing features | Complex infrastructure for minimal gain in solo learning tool |
-| Temperature reheat | Advanced SA technique not in Faulon 1996 paper; adds conceptual complexity for students |
-| Comparative runs | High development cost; students can run twice manually to compare |
-| Annotated molecular features | High complexity to implement well; requires deep domain expertise |
-| Batch processing | Students learn by watching individual runs; automation removes the learning experience |
+| Spectroscopic target functions (NMR prediction) | Future milestone — requires NMR prediction engine |
+| Celery/Redis task queue | YAGNI — BackgroundTasks sufficient for educational demo |
+| Database persistence | In-memory dict sufficient — sessions are ephemeral classroom use |
+| Authentication/authorization | Students in classroom, not customers with accounts |
+| WebSocket communication | SSE is correct for one-way streaming |
+| GraphQL | REST with clear endpoints is simpler for educational codebase |
+| Docker containerization at launch | Deploy directly to Railway/Render first |
+| 3D molecular visualization | Wiener Index is about graph topology, not 3D geometry |
+| Batch processing | Students learn by watching individual runs |
 
 ## Traceability
 
 Which phases cover which requirements. Updated during roadmap creation.
+
+### v1.0 (Complete)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -93,18 +148,50 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CTRL-03 | Phase 2 | Done |
 | CTRL-04 | Phase 2 | Done |
 | CTRL-05 | Phase 2 | Done |
-| VIZ-01 | Phase 3 | Pending |
-| VIZ-02 | Phase 3 | Pending |
-| VIZ-03 | Phase 3 | Pending |
-| VIZ-04 | Phase 3 | Pending |
-| UX-01 | Phase 3 | Pending |
-| UX-02 | Phase 3 | Pending |
+| VIZ-01 | Phase 3 | Done |
+| VIZ-02 | Phase 3 | Done |
+| VIZ-03 | Phase 3 | Done |
+| VIZ-04 | Phase 3 | Done |
+| UX-01 | Phase 3 | Done |
+| UX-02 | Phase 3 | Done |
+
+### v2.0 (Pending)
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| BACK-01 | — | Pending |
+| BACK-02 | — | Pending |
+| BACK-03 | — | Pending |
+| BACK-04 | — | Pending |
+| MOL-01 | — | Pending |
+| MOL-02 | — | Pending |
+| MOL-03 | — | Pending |
+| MOL-04 | — | Pending |
+| SA-01 | — | Pending |
+| SA-02 | — | Pending |
+| SA-03 | — | Pending |
+| SA-04 | — | Pending |
+| API-01 | — | Pending |
+| API-02 | — | Pending |
+| API-03 | — | Pending |
+| API-04 | — | Pending |
+| TGT-01 | — | Pending |
+| TGT-02 | — | Pending |
+| TGT-03 | — | Pending |
+| FE-01 | — | Pending |
+| FE-02 | — | Pending |
+| FE-03 | — | Pending |
+| FE-04 | — | Pending |
+| DEP-01 | — | Pending |
+| DEP-02 | — | Pending |
+| DEP-03 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 21 total
-- Mapped to phases: 21
-- Unmapped: 0
+- v1.0 requirements: 21 total — all Done
+- v2.0 requirements: 26 total
+- Mapped to phases: 0
+- Unmapped: 26 (pending roadmap creation)
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-15 after phase 2 execution complete*
+*Last updated: 2026-02-15 after v2.0 requirements defined*
