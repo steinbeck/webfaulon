@@ -15,6 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Molecular Graph & SA Core** - Chemical correctness foundation
 - [x] **Phase 2: Browser Integration & Controls** - Web Workers, user input, execution controls
 - [x] **Phase 3: Visualization & UX** - Charts, structure rendering, classroom-ready design
+- [ ] **Phase 3.1: Add README and GitHub Pages deployment** - Documentation and public deployment (INSERTED)
 
 ## Phase Details
 
@@ -71,18 +72,28 @@ Plans:
 - [x] 03-02-PLAN.md — Chart.js live chart module + RDKit.js molecule renderer module
 - [x] 03-03-PLAN.md — UI integration, responsive redesign, and visual verification checkpoint
 
+### Phase 03.1: Add README and GitHub Pages deployment (INSERTED)
+**Goal**: App is publicly accessible at https://steinbeck.github.io/webfaulon/ with comprehensive documentation
+**Depends on**: Phase 3
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03.1-01-PLAN.md — Vite base path config, RDKit CDN fix, and GitHub Actions deployment workflow
+- [ ] 03.1-02-PLAN.md — Comprehensive README with project docs, demo link, and academic citation
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3
+Phases execute in numeric order: 1 → 2 → 3 → 3.1
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Molecular Graph & SA Core | 4/4 | Complete | 2026-02-14 |
 | 2. Browser Integration & Controls | 3/3 | Complete | 2026-02-15 |
 | 3. Visualization & UX | 3/3 | Complete | 2026-02-15 |
+| 3.1. README & GitHub Pages | 0/2 | Planned | — |
 
 ---
 
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-15 after phase 3 execution complete — all phases done*
+*Last updated: 2026-02-15 — Phase 3.1 planned (2 plans, 1 wave)*
