@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time — making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** Phase 2 - Browser Integration & Controls (Phase 1 complete)
+**Current focus:** Phase 3 - Visualization & UX Polish (Phases 1-2 complete)
 
 ## Current Position
 
-Phase: 2 of 3 (Browser Integration & Controls)
-Plan: 3 of 3 in current phase
-Status: Complete
-Last activity: 2026-02-15 — Completed plan 02-03 (Browser UI & Controls with Alpine.js)
+Phase: 3 of 3 (Visualization & UX)
+Plan: 2 of 3 in current phase
+Status: In Progress
+Last activity: 2026-02-15 — Completed plan 03-02 (Chart & Molecule Renderer Modules)
 
-Progress: [██████████] 100% (Phase 2: 3/3 plans complete)
+Progress: [███████░░░] 67% (Phase 3: 2/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
-- Average duration: 18.4 min
-- Total execution time: 2.15 hours
+- Total plans completed: 8
+- Average duration: 16.3 min
+- Total execution time: 2.17 hours
 
 **By Phase:**
 
@@ -29,6 +29,7 @@ Progress: [██████████] 100% (Phase 2: 3/3 plans complete)
 |-------|-------|-------|----------|
 | 01-molecular-graph-sa-core | 4 | 28 min | 7.0 min |
 | 02-browser-integration-controls | 3 | 96 min | 32.0 min |
+| 03-visualization-ux | 1 | 2 min | 2.0 min |
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -39,6 +40,7 @@ Progress: [██████████] 100% (Phase 2: 3/3 plans complete)
 | 02-browser-integration-controls | 01 | 3 min | 2 | 3 |
 | 02-browser-integration-controls | 02 | 3 min | 3 | 10 |
 | 02-browser-integration-controls | 03 | 90 min | 4 | 10 |
+| 03-visualization-ux | 02 | 2 min | 2 | 4 |
 
 ## Accumulated Context
 
@@ -70,6 +72,13 @@ Recent decisions affecting current work:
 - [Phase 02-03]: Alpine.js for reactive UI (lightweight, suitable for classroom projection)
 - [Phase 02-03]: RDKit.js loaded via CDN script tag (library exposes global, not ES module)
 - [Phase 02-03]: Module-level worker references outside Alpine reactive scope (prevents Proxy-of-Proxy conflicts with Comlink)
+- [Phase 03-02]: Chart.js tree-shaken imports (not auto bundle) for optimal bundle size
+- [Phase 03-02]: Module-level chart instance storage outside Alpine reactive scope prevents Proxy conflicts
+- [Phase 03-02]: Decimation plugin with min-max algorithm preserves SA peaks/valleys
+- [Phase 03-02]: Animation disabled and parsing:false for real-time performance
+- [Phase 03-02]: aspectRatio 2.5 for wide step timeline visualization
+- [Phase 03-02]: Redundant SMILES re-render prevention via _lastRenderedSMILES tracking
+- [Phase 03-02]: WASM memory cleanup guaranteed via try/finally with mol.delete()
 
 ### Pending Todos
 
@@ -87,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-15 (Phase 2 complete)
-Stopped at: Completed 02-03-PLAN.md — Browser UI & Controls with Alpine.js. Phase 2 complete (3/3 plans). Ready for Phase 3 (Visualization & Polish).
+Last session: 2026-02-15 (Phase 3 in progress)
+Stopped at: Completed 03-02-PLAN.md — Chart & Molecule Renderer Modules. Phase 3: 2/3 plans complete. Note: Plan 03-01 may be incomplete (uncommitted toSMILES implementation, failing test).
 Resume file: None
