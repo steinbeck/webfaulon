@@ -158,6 +158,93 @@ export class MolGraph {
     return new MolGraph(atomsCopy, bondsCopy);
   }
 
+  /**
+   * Generate a SMILES string representation of this molecular graph
+   *
+   * Uses DFS-based SMILES generation. This produces valid (but non-canonical) SMILES
+   * that can be parsed by RDKit.js. Canonicalization is RDKit's responsibility.
+   *
+   * @returns SMILES string representation
+   */
+  toSMILES(): string {
+    if (this.atoms.length === 0) {
+      return '';
+    }
+
+    // Build adjacency list from bond matrix
+    const adjacency: number[][] = Array(this.atoms.length).fill(0).map(() => []);
+    for (let i = 0; i < this.atoms.length; i++) {
+      for (let j = i + 1; j < this.atoms.length; j++) {
+        if (this.bonds[i]![j]! > 0) {
+          adjacency[i]!.push(j);
+          adjacency[j]!.push(i);
+        }
+      }
+    }
+
+    // Track visited atoms and ring closures
+    const visited = new Array(this.atoms.length).fill(false);
+    const ringClosures: Map<string, number> = new Map(); // key: "i-j" where i < j
+    let nextRingNumber = 1;
+
+    const dfs = (atomIdx: number, parentIdx: number = -1): string => {
+      visited[atomIdx] = true;
+      let smiles = this.atoms[atomIdx]!.element;
+
+      const neighbors = adjacency[atomIdx]!.filter(n => n !== parentIdx);
+
+      // First pass: handle ring closures (back edges to already-visited atoms)
+      for (const neighborIdx of neighbors) {
+        if (visited[neighborIdx]) {
+          const edgeKey = atomIdx < neighborIdx
+            ? `${atomIdx}-${neighborIdx}`
+            : `${neighborIdx}-${atomIdx}`;
+
+          if (!ringClosures.has(edgeKey)) {
+            // First time encountering this ring closure - open it
+            const ringNum = nextRingNumber++;
+            ringClosures.set(edgeKey, ringNum);
+            smiles += ringNum.toString();
+          }
+          // Note: if the edge is already in ringClosures, it means we're at the
+          // closing end, but we already added the digit when opening, so skip
+        }
+      }
+
+      // Second pass: traverse unvisited neighbors (tree edges)
+      let firstBranch = true;
+      for (const neighborIdx of neighbors) {
+        // Check if visited NOW (not at the start) because recursive calls might have visited it
+        if (visited[neighborIdx]) {
+          continue;
+        }
+
+        const bondOrder = this.bonds[atomIdx]![neighborIdx]!;
+
+        // Add bond symbol for double/triple bonds
+        let bondSymbol = '';
+        if (bondOrder === 2) {
+          bondSymbol = '=';
+        } else if (bondOrder === 3) {
+          bondSymbol = '#';
+        }
+
+        if (firstBranch) {
+          // First branch - continue main chain
+          smiles += bondSymbol + dfs(neighborIdx, atomIdx);
+          firstBranch = false;
+        } else {
+          // Additional branches - wrap in parentheses
+          smiles += '(' + bondSymbol + dfs(neighborIdx, atomIdx) + ')';
+        }
+      }
+
+      return smiles;
+    };
+
+    return dfs(0);
+  }
+
   // Factory methods for testing
   static createLinearAlkane(n: number): MolGraph {
     if (n < 1) {
