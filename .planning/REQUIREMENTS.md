@@ -9,9 +9,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Input
 
-- [ ] **INP-01**: User can enter any molecular formula (e.g., C6H14, C8H10) to define the constitutional isomer space
-- [ ] **INP-02**: Formula is validated before SA starts (invalid formulas rejected with clear error message)
-- [ ] **INP-03**: Preset example molecules (3-5 curated) available for quick start without needing to know valid formulas
+- [x] **INP-01**: User can enter any molecular formula (e.g., C6H14, C8H10) to define the constitutional isomer space
+- [x] **INP-02**: Formula is validated before SA starts (invalid formulas rejected with clear error message)
+- [x] **INP-03**: Preset example molecules (3-5 curated) available for quick start without needing to know valid formulas
 
 ### Algorithm
 
@@ -21,15 +21,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ALG-04**: User can toggle between maximizing and minimizing the Wiener Index
 - [x] **ALG-05**: SA accepts/rejects moves using Metropolis criterion: accept if delta_e < 0 (improving), else accept with probability exp(-delta_e/kT)
 - [x] **ALG-06**: Graph connectivity validated after every SA move (disconnected fragments rejected, molecule stays connected)
-- [ ] **ALG-07**: Algorithm runs entirely in-browser via Web Worker (no backend required, UI stays responsive during computation)
+- [x] **ALG-07**: Algorithm runs entirely in-browser via Web Worker (no backend required, UI stays responsive during computation)
 
 ### Controls
 
-- [ ] **CTRL-01**: User can set initial temperature (kT) with sensible default (kT=100 per paper)
-- [ ] **CTRL-02**: User can select cooling schedule from f0 through f32 family as described in paper (kT_t = kT_0 - k * kT_0 * t / delta_t, clamped to 0)
-- [ ] **CTRL-03**: User can set number of steps per cycle (default 500 per paper)
-- [ ] **CTRL-04**: User can set number of cycles (default 4-8 per paper)
-- [ ] **CTRL-05**: User can play, pause, and reset the SA execution
+- [x] **CTRL-01**: User can set initial temperature (kT) with sensible default (kT=100 per paper)
+- [x] **CTRL-02**: User can select cooling schedule from f0 through f32 family as described in paper (kT_t = kT_0 - k * kT_0 * t / delta_t, clamped to 0)
+- [x] **CTRL-03**: User can set number of steps per cycle (default 500 per paper)
+- [x] **CTRL-04**: User can set number of cycles (default 4-8 per paper)
+- [x] **CTRL-05**: User can play, pause, and reset the SA execution
 
 ### Visualization
 
@@ -78,21 +78,21 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INP-01 | Phase 2 | Pending |
-| INP-02 | Phase 2 | Pending |
-| INP-03 | Phase 2 | Pending |
+| INP-01 | Phase 2 | Done |
+| INP-02 | Phase 2 | Done |
+| INP-03 | Phase 2 | Done |
 | ALG-01 | Phase 1 | Done |
 | ALG-02 | Phase 1 | Done |
 | ALG-03 | Phase 1 | Done |
 | ALG-04 | Phase 1 | Done |
 | ALG-05 | Phase 1 | Done |
 | ALG-06 | Phase 1 | Done |
-| ALG-07 | Phase 2 | Pending |
-| CTRL-01 | Phase 2 | Pending |
-| CTRL-02 | Phase 2 | Pending |
-| CTRL-03 | Phase 2 | Pending |
-| CTRL-04 | Phase 2 | Pending |
-| CTRL-05 | Phase 2 | Pending |
+| ALG-07 | Phase 2 | Done |
+| CTRL-01 | Phase 2 | Done |
+| CTRL-02 | Phase 2 | Done |
+| CTRL-03 | Phase 2 | Done |
+| CTRL-04 | Phase 2 | Done |
+| CTRL-05 | Phase 2 | Done |
 | VIZ-01 | Phase 3 | Pending |
 | VIZ-02 | Phase 3 | Pending |
 | VIZ-03 | Phase 3 | Pending |
@@ -107,4 +107,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-14 after phase 1 execution complete*
+*Last updated: 2026-02-15 after phase 2 execution complete*

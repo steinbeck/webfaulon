@@ -13,7 +13,7 @@ WebFaulon delivers a browser-based educational tool that brings Faulon's 1996 si
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Molecular Graph & SA Core** - Chemical correctness foundation
-- [ ] **Phase 2: Browser Integration & Controls** - Web Workers, user input, execution controls
+- [x] **Phase 2: Browser Integration & Controls** - Web Workers, user input, execution controls
 - [ ] **Phase 3: Visualization & UX** - Charts, structure rendering, classroom-ready design
 
 ## Phase Details
@@ -50,9 +50,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — SAEngine step-by-step execution API refactor (TDD)
-- [ ] 02-02-PLAN.md — Web Worker + Comlink integration and Vite project scaffold
-- [ ] 02-03-PLAN.md — Alpine.js UI controls, formula validation, presets, and RDKit.js WASM
+- [x] 02-01-PLAN.md — SAEngine step-by-step execution API refactor (TDD)
+- [x] 02-02-PLAN.md — Web Worker + Comlink integration and Vite project scaffold
+- [x] 02-03-PLAN.md — Alpine.js UI controls, formula validation, presets, and RDKit.js WASM
 
 ### Phase 3: Visualization & UX
 **Goal**: Students see optimization happening in real time with clear, classroom-ready visuals
@@ -78,10 +78,10 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Molecular Graph & SA Core | 4/4 | Complete | 2026-02-14 |
-| 2. Browser Integration & Controls | 0/3 | Planned | - |
+| 2. Browser Integration & Controls | 3/3 | Complete | 2026-02-15 |
 | 3. Visualization & UX | 0/TBD | Not started | - |
 
 ---
 
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-15 after phase 2 planning complete*
+*Last updated: 2026-02-15 after phase 2 execution complete*
