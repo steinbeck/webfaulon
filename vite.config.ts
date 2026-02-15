@@ -13,4 +13,7 @@ export default defineConfig({
   build: {
     target: 'es2020',
   },
+  optimizeDeps: {
+    exclude: ['@rdkit/rdkit'], // Don't pre-bundle WASM
+  },
 });
