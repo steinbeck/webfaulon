@@ -5,23 +5,23 @@
 See: .planning/PROJECT.md (updated 2026-02-14)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time — making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** Phase 3 - Visualization & UX Polish (Phases 1-2 complete)
+**Current focus:** All 3 phases complete — milestone 1 delivered
 
 ## Current Position
 
 Phase: 3 of 3 (Visualization & UX)
-Plan: 1 of 3 in current phase
-Status: In Progress
-Last activity: 2026-02-15 — Completed plan 03-01 (SMILES Generation & Progress Propagation)
+Plan: 3 of 3 in current phase
+Status: Complete
+Last activity: 2026-02-15 — Completed plan 03-03 (UI Integration & Responsive Redesign), all phases done
 
-Progress: [███░░░░░░░] 33% (Phase 3: 1/3 plans complete)
+Progress: [██████████] 100% (All 3 phases complete, 10/10 plans executed)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 15.5 min
-- Total execution time: 2.07 hours
+- Total plans completed: 10
+- Average duration: ~14 min
+- Total execution time: ~2.5 hours
 
 **By Phase:**
 
@@ -29,7 +29,7 @@ Progress: [███░░░░░░░] 33% (Phase 3: 1/3 plans complete)
 |-------|-------|-------|----------|
 | 01-molecular-graph-sa-core | 4 | 28 min | 7.0 min |
 | 02-browser-integration-controls | 3 | 96 min | 32.0 min |
-| 03-visualization-ux | 1 | 5 min | 5.0 min |
+| 03-visualization-ux | 3 | ~100 min | ~33 min |
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -41,6 +41,8 @@ Progress: [███░░░░░░░] 33% (Phase 3: 1/3 plans complete)
 | 02-browser-integration-controls | 02 | 3 min | 3 | 10 |
 | 02-browser-integration-controls | 03 | 90 min | 4 | 10 |
 | 03-visualization-ux | 01 | 5 min | 2 | 6 |
+| 03-visualization-ux | 02 | 2 min | 2 | 4 |
+| 03-visualization-ux | 03 | ~90 min | 3 | 10 |
 
 ## Accumulated Context
 
@@ -49,49 +51,21 @@ Progress: [███░░░░░░░] 33% (Phase 3: 1/3 plans complete)
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Initialization: RDKit.js chosen for 2D rendering (full cheminformatics in browser)
-- Initialization: In-browser only architecture (no backend, simplest classroom deployment)
-- Initialization: Wiener Index as sole cost function for v1 (matches paper's primary test case)
-- Initialization: Modern SPA with Vite (good DX, tree-shaking, easy dependencies)
-- [Phase 01-01]: Mutable MolGraph with explicit validation (SA displacement pattern)
-- [Phase 01-01]: Array-based BFS queue for O(1) dequeue in Wiener computation
-- [Phase 01-02]: Linear chain with iterative bond upgrades for unsaturation (deterministic, guarantees valid structures)
-- [Phase 01-02]: Regex-based formula parser with known element validation (simple, robust, extensible)
-- [Phase 01-03]: Mulberry32 PRNG for seeded randomness (fast, deterministic, no dependencies)
-- [Phase 01-03]: Return null for invalid displacements rather than retry internally (SA engine controls retry logic)
-- [Phase 01-04]: Class-based SAEngine with private state management (clean API, encapsulates SA state)
-- [Phase 01-04]: Extract isBetter() helper method in refactor phase (eliminates duplication, single source of truth)
-- [Phase 02-01]: Refactored run() to delegate to init()+step()+getResult() for single code path
-- [Phase 02-01]: getState() returns snapshot (not live reference) for safe cross-thread sharing
-- [Phase 02-01]: Error throwing on invalid method call sequences (step before init, getResult before complete)
-- [Phase 02-02]: Singleton SAWorker instance exposed via Comlink (simpler lifecycle than class exposure)
-- [Phase 02-02]: Moved SAParams and SAResult to shared types.ts for cross-module type safety
-- [Phase 02-02]: Periodic yield every 100 steps ensures pause/resume messages can be processed
-- [Phase 02-03]: Two-stage formula validation (regex format + chemical validity via parseFormula + HDI)
-- [Phase 02-03]: 5 preset molecules selected to demonstrate different SA behaviors (size and unsaturation variety)
-- [Phase 02-03]: Alpine.js for reactive UI (lightweight, suitable for classroom projection)
-- [Phase 02-03]: RDKit.js loaded via CDN script tag (library exposes global, not ES module)
-- [Phase 02-03]: Module-level worker references outside Alpine reactive scope (prevents Proxy-of-Proxy conflicts with Comlink)
-- [Phase 03-01]: DFS-based SMILES generation produces valid (non-canonical) SMILES suitable for RDKit parsing
-- [Phase 03-01]: Ring closures detected via back edges in DFS traversal
-- [Phase 03-01]: toSMILES() called in getState() every reportInterval steps (negligible cost vs Wiener Index computation)
+- [Phase 03-03]: Replaced toSMILES() with toMolBlock() — MOL blocks trivially correct from adjacency matrix
+- [Phase 03-03]: RDKit.js set_new_coords() required before draw_to_canvas() (zero-coord MOL blocks crash WASM)
+- [Phase 03-03]: Pipeline sends MOL block from worker; main thread derives canonical SMILES via RDKit
+- [Phase 03-03]: Added C10H16 (monoterpene isomers) to presets per user request
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-**Phase 1 planning:**
-- ~~Research gap: Faulon displacement equations (eqs 7-11) details needed from original 1996 paper~~ RESOLVED: Equations verified from Faulon 1996 paper page 733, implemented in 01-03
-- ~~Decision needed: Initial structure generation algorithm (deterministic vs stochastic approach)~~ RESOLVED: Linear chain approach implemented in 01-02
-
-**Phase 3 planning:**
-- Chart decimation threshold needs performance testing (500 vs 1000 vs 2000 sample points)
-- Mobile breakpoints need validation on actual classroom tablets/Chromebooks
+None — all blockers resolved.
 
 ## Session Continuity
 
-Last session: 2026-02-15 (Phase 3 in progress)
-Stopped at: Completed 03-01-PLAN.md — SMILES Generation & Progress Propagation. Phase 3: 1/3 plans complete.
+Last session: 2026-02-15 (All phases complete)
+Stopped at: Milestone 1 complete — all 3 phases delivered, 10/10 plans executed.
 Resume file: None

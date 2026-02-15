@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Molecular Graph & SA Core** - Chemical correctness foundation
 - [x] **Phase 2: Browser Integration & Controls** - Web Workers, user input, execution controls
-- [ ] **Phase 3: Visualization & UX** - Charts, structure rendering, classroom-ready design
+- [x] **Phase 3: Visualization & UX** - Charts, structure rendering, classroom-ready design
 
 ## Phase Details
 
@@ -67,9 +67,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — SMILES generation for MolGraph + worker bestSMILES propagation (TDD)
-- [ ] 03-02-PLAN.md — Chart.js live chart module + RDKit.js molecule renderer module
-- [ ] 03-03-PLAN.md — UI integration, responsive redesign, and visual verification checkpoint
+- [x] 03-01-PLAN.md — SMILES generation for MolGraph + worker bestSMILES propagation (TDD)
+- [x] 03-02-PLAN.md — Chart.js live chart module + RDKit.js molecule renderer module
+- [x] 03-03-PLAN.md — UI integration, responsive redesign, and visual verification checkpoint
 
 ## Progress
 
@@ -80,9 +80,9 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Molecular Graph & SA Core | 4/4 | Complete | 2026-02-14 |
 | 2. Browser Integration & Controls | 3/3 | Complete | 2026-02-15 |
-| 3. Visualization & UX | 0/3 | Not started | - |
+| 3. Visualization & UX | 3/3 | Complete | 2026-02-15 |
 
 ---
 
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-15 after phase 2 execution complete*
+*Last updated: 2026-02-15 after phase 3 execution complete — all phases done*
