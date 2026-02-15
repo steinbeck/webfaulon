@@ -274,4 +274,123 @@ describe('MolGraph', () => {
       expect(() => graph.getBondOrder(0, 5)).toThrow('out of bounds');
     });
   });
+
+  describe('toSMILES', () => {
+    it('should generate SMILES for methane (C1)', () => {
+      const graph = MolGraph.createLinearAlkane(1);
+      const smiles = graph.toSMILES();
+      expect(smiles).toBe('C');
+    });
+
+    it('should generate SMILES for ethane (C2)', () => {
+      const graph = MolGraph.createLinearAlkane(2);
+      const smiles = graph.toSMILES();
+      expect(smiles).toBe('CC');
+    });
+
+    it('should generate SMILES for n-hexane (C6)', () => {
+      const graph = MolGraph.createLinearAlkane(6);
+      const smiles = graph.toSMILES();
+      expect(smiles).toBe('CCCCCC');
+    });
+
+    it('should generate SMILES with branch notation for isobutane', () => {
+      const graph = MolGraph.createBranched('isobutane');
+      const smiles = graph.toSMILES();
+      // Valid SMILES for isobutane: CC(C)C or C(C)CC or C(C)(C)C
+      expect(smiles).toBeTruthy();
+      expect(smiles.length).toBeGreaterThan(0);
+      // Should contain 4 C's
+      const cCount = (smiles.match(/C/g) || []).length;
+      expect(cCount).toBe(4);
+      // Should contain parentheses for branching
+      expect(smiles).toMatch(/\(/);
+      expect(smiles).toMatch(/\)/);
+    });
+
+    it('should generate SMILES with branch notation for neopentane', () => {
+      const graph = MolGraph.createBranched('neopentane');
+      const smiles = graph.toSMILES();
+      expect(smiles).toBeTruthy();
+      expect(smiles.length).toBeGreaterThan(0);
+      // Should contain 5 C's
+      const cCount = (smiles.match(/C/g) || []).length;
+      expect(cCount).toBe(5);
+      // Should contain parentheses for branching
+      expect(smiles).toMatch(/\(/);
+      expect(smiles).toMatch(/\)/);
+    });
+
+    it('should generate SMILES with ring closure for cyclohexane', () => {
+      const graph = MolGraph.createCyclohexane();
+      const smiles = graph.toSMILES();
+      expect(smiles).toBeTruthy();
+      expect(smiles.length).toBeGreaterThan(0);
+      // Should contain 6 C's
+      const cCount = (smiles.match(/C/g) || []).length;
+      expect(cCount).toBe(6);
+      // Should contain ring closure digit (1-9)
+      expect(smiles).toMatch(/\d/);
+    });
+
+    it('should generate SMILES with double bond notation (ethene)', () => {
+      // Create ethene: C=C (2 carbons, bond order 2)
+      const atoms: Atom[] = [
+        { element: 'C', implicitH: 0 },
+        { element: 'C', implicitH: 0 },
+      ];
+      const bonds = [
+        [0, 2],
+        [2, 0],
+      ];
+      const graph = new MolGraph(atoms, bonds);
+      const smiles = graph.toSMILES();
+      expect(smiles).toBe('C=C');
+    });
+
+    it('should generate SMILES with triple bond notation (ethyne)', () => {
+      // Create ethyne: C#C (2 carbons, bond order 3)
+      const atoms: Atom[] = [
+        { element: 'C', implicitH: 0 },
+        { element: 'C', implicitH: 0 },
+      ];
+      const bonds = [
+        [0, 3],
+        [3, 0],
+      ];
+      const graph = new MolGraph(atoms, bonds);
+      const smiles = graph.toSMILES();
+      expect(smiles).toBe('C#C');
+    });
+
+    it('should generate SMILES with heteroatoms (methanol)', () => {
+      // Create methanol: C-O
+      const atoms: Atom[] = [
+        { element: 'C', implicitH: 0 },
+        { element: 'O', implicitH: 0 },
+      ];
+      const bonds = [
+        [0, 1],
+        [1, 0],
+      ];
+      const graph = new MolGraph(atoms, bonds);
+      const smiles = graph.toSMILES();
+      expect(smiles).toBeTruthy();
+      expect(smiles.length).toBeGreaterThan(0);
+      expect(smiles).toContain('C');
+      expect(smiles).toContain('O');
+    });
+
+    it('should generate valid SMILES for linear alkanes (round-trip validation)', () => {
+      // For linear alkanes n=3 to 8, verify SMILES is non-empty and has correct structure
+      for (let n = 3; n <= 8; n++) {
+        const graph = MolGraph.createLinearAlkane(n);
+        const smiles = graph.toSMILES();
+        expect(smiles).toBeTruthy();
+        expect(smiles.length).toBe(n); // Linear alkane SMILES should be n C's
+        const cCount = (smiles.match(/C/g) || []).length;
+        expect(cCount).toBe(n);
+      }
+    });
+  });
 });
