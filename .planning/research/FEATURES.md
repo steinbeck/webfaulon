@@ -1,336 +1,432 @@
 # Feature Landscape
 
-**Domain:** Interactive Chemistry Education Web Apps (Simulated Annealing Molecular Optimization)
-**Researched:** 2026-02-14
-**Confidence:** MEDIUM
+**Domain:** FastAPI Backend Migration with RDKit for Molecular SA (Subsequent Milestone)
+**Researched:** 2026-02-15
+**Confidence:** MEDIUM-HIGH
 
-## Table Stakes
+## Context
 
-Features users expect. Missing = product feels incomplete.
+This research covers ONLY the NEW features for v2.0 backend migration. The existing browser-based demo (v1.x) already provides:
+- Formula input with validation and preset molecules
+- SA parameter controls (kT, cooling schedule, steps, cycles)
+- Start/pause/reset execution controls
+- Live Wiener Index vs step chart
+- 2D molecule rendering with canonical SMILES display
+- Responsive classroom-ready UI
+- GitHub Pages deployment
+
+**Migration goal:** Same UX experience, but with Python RDKit backend enabling multi-component target functions beyond Wiener Index (future spectroscopic scoring).
+
+## Table Stakes (Users Expect These)
+
+Features users assume exist. Missing these = migration feels broken.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Molecular formula input | Standard starting point for chemistry tools; users expect simple text input (C6H12O6) | Low | MolView and similar tools use this as primary input method. Should validate formula before proceeding. |
-| 2D structure visualization | Core output for chemistry education; students need to see molecular structure | Medium | RDKit.js handles this. ChemDoodle and MolView show this is expected in all chemistry web apps. |
-| Play/Pause/Reset controls | Standard for all algorithm visualizations; VisuAlgo research shows users expect VCR-like controls | Low | Students need to control pacing for comprehension. |
-| Real-time algorithm state display | Shows current temperature, step count, acceptance ratio; algorithm demos always show this | Medium | Users need to see "what is the algorithm doing now?" Similar to SA TSP demos. |
-| Preset examples | Reduces barrier to entry; research shows presets help beginners understand parameter relationships | Low | 3-5 example molecules with pre-configured parameters. Students can click and run immediately. |
-| Parameter controls for SA | kT (temperature), cooling schedule, max steps are the basic SA parameters users expect to tune | Medium | ICP-MS TuneSim research shows students learn by adjusting instrument parameters. Sliders with reasonable defaults. |
-| Mobile responsiveness | 2026 standard; WebMO research shows BYOD paradigm is critical for chemistry education | Medium | Must work on tablets/phones. Students use personal devices in class. |
-| Step-by-step mode | Allows manual advancement one step at a time; VisuAlgo research shows this aids comprehension | Medium | Critical for understanding stochastic acceptance decisions. |
+| REST API for SA configuration | Standard backend pattern; frontend needs to configure algorithm parameters | Low | POST /api/sa/configure with JSON body for formula, kT, cooling, steps, cycles. Return session ID. |
+| SSE streaming of SA progress | Required to maintain "live chart updates" UX from v1.x; polling is 2010s pattern | Medium | GET /api/sa/stream/{session_id} returns text/event-stream with step updates. Frontend EventSource consumes this. |
+| Start/pause/reset via API | Frontend controls depend on it; users expect same control as v1.x | Low | POST /api/sa/{session_id}/start, /pause, /reset endpoints. State machine validates transitions. |
+| Current state query endpoint | Frontend needs to reconstruct state on page refresh or reconnection | Low | GET /api/sa/{session_id}/status returns current step, energy, temperature, best molecule. |
+| Backend molecule validation | RDKit must validate formula and generated structures; v1.x does this client-side with RDKit.js | Medium | Use rdkit.Chem.MolFromSmiles() and rdkit.Chem.Descriptors for validation. Return 400 with clear error messages for invalid formulas. |
+| 2D SVG molecule rendering | v1.x renders molecules; backend must provide SVG to replace RDKit.js WASM rendering | Medium | Use rdkit.Chem.Draw.MolDraw2DSVG to generate SVG. Return via API or embed in SSE events. |
+| Session state persistence | Users expect to pause and resume without losing work | Medium | Store SAEngine state in-memory (dict) initially. Session expires after configurable timeout (30 min default). |
+| CORS configuration | Frontend (GitHub Pages) and backend (separate origin) require CORS | Low | FastAPI CORSMiddleware with allowed_origins from env var. Critical for deployment. |
+| Error handling with HTTP codes | REST API standard; frontend needs clear error semantics | Low | 400 (bad input), 404 (session not found), 409 (invalid state transition), 500 (internal error). JSON error responses. |
+| Health check endpoint | Deployment standard; container orchestration and monitoring expect this | Low | GET /api/health returns 200 with {status: "ok", version: "2.0.0"}. |
 
-## Differentiators
+## Differentiators (Competitive Advantage)
 
-Features that set product apart. Not expected, but valued.
+Features that set v2.0 apart. Not in v1.x, not required for migration, but enable future value.
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Live optimization chart | Real-time graph showing Wiener Index vs step; makes optimization visible | Medium | Chart.js can handle streaming updates. VisuAlgo research: animation aids understanding. Differentiates from static demos. |
-| Visual molecule transitions | Animate bond redistribution when SA accepts a move; shows the displacement operation | High | Visualizing the 4-atom displacement from Faulon paper. Highly educational but complex to implement smoothly. |
-| Configurable cooling schedules | Exponential, linear, logarithmic options; lets students experiment with schedule impact | Medium | Most SA demos fix schedule. Allowing experimentation teaches schedule importance. Related to parameter tuning research. |
-| Download results | Export final structure as image/SMILES/molfile; enables use in reports/assignments | Low-Medium | WebMO research shows export is valued. Students want to save work. PNG for structure, CSV for optimization data. |
-| Comparative runs | Side-by-side comparison of multiple runs with different parameters | High | Shows stochastic nature and parameter sensitivity. Defer to v2 unless critical. |
-| Detailed acceptance log | Shows each proposed move, energy delta, acceptance decision with probability | Medium | Educational value: demystifies probabilistic acceptance. Could be collapsible panel. |
-| Temperature reheat | Increase temperature when stuck in local minimum; advanced SA feature | Medium | CADApps demo shows this. Teaches advanced optimization strategies. |
-| Optimization metrics dashboard | Display current vs best Wiener Index, acceptance rate, diversity metrics | Medium | Helps students understand convergence and exploration/exploitation tradeoff. |
-| Annotated molecular features | Highlight branching, rings, chains in structure; connects Wiener Index to topology | High | Deeply educational but complex. Shows WHY certain structures score better. |
+| Multi-component target function framework | MAIN VALUE of migration; enables spectroscopic scoring beyond Wiener Index | High | Pluggable component architecture. Each component (WienerIndexComponent, NMRPredictionComponent) implements score(mol) -> float. Weighted sum combines them. |
+| Adjustable component weights via API | Users can tune "60% Wiener, 40% NMR prediction" to explore tradeoffs | Medium | POST /api/sa/configure accepts weights dict: {wiener: 0.6, nmr: 0.4}. Validates sum = 1.0. Enables multi-objective optimization experiments. |
+| Component-wise score streaming | SSE events include breakdown: {total: 42.3, wiener: 28.1, nmr: 14.2} so users see contribution of each | Low-Medium | Extends SSE event format. Minimal complexity once framework exists. High educational value (shows which components dominate). |
+| RDKit descriptor calculation API | Expose RDKit's 200+ descriptors (MolWt, LogP, TPSA) for custom scoring components | Low | GET /api/descriptors/{smiles} returns JSON with all descriptors. Enables users to explore molecular properties. |
+| Backend displacement on native RDKit | Python RDKit Chem.RWMol allows native bond manipulation; v1.x uses custom graph | High | Replicate Faulon displacement (eqs 7-11) using RDKit's SetBondBondOrder(), AddBond(), RemoveBond(). Validate with Chem.SanitizeMol(). More chemically rigorous than adjacency matrix. |
+| Canonical SMILES via RDKit | RDKit's canonicalization is authoritative; v1.x uses custom DFS algorithm | Low | Use Chem.MolToSmiles(mol, canonical=True). Replaces frontend SMILES generation. More reliable. |
+| Async SA execution with task status | Non-blocking server; multiple users can run SA simultaneously without worker contention | Medium | Use FastAPI BackgroundTasks initially. Each session runs SA in background thread. Status updates via shared state. |
+| Graceful cancellation | Users can stop long-running SA without orphaning resources | Medium | POST /api/sa/{session_id}/cancel sets stop flag. SA loop checks flag each iteration. Clean resource cleanup. |
 
-## Anti-Features
+## Anti-Features (Commonly Requested, Often Problematic)
 
-Features to explicitly NOT build.
+Features that seem good but create problems for this migration.
 
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| User accounts/login | Adds complexity and privacy concerns for educational demo; students won't create accounts for one-off demos | Use browser localStorage to save recent runs. Focus on instant usability. |
-| 3D molecular visualization | Wiener Index is about graph topology not 3D geometry; 3D doesn't add educational value here and adds significant complexity | Stick to clear 2D drawings. The algorithm operates on constitutional isomers (2D connectivity). |
-| Database of molecules | Scope creep; students should focus on algorithm not browsing molecules | Provide 5-10 curated presets that demonstrate different phenomena. Link to PubChem if they want more. |
-| Collaborative/sharing features | Complex infrastructure for minimal educational gain in solo learning tool | Export image/data for sharing via existing channels (email, LMS). |
-| Backend computation | Overengineering; Faulon SA for small molecules runs fast in browser | Keep it client-side. RDKit.js WASM proves complex cheminformatics runs in browser. No server needed. |
-| Social/gamification features | Wrong context; this is serious computational chemistry education not a game | Focus on clear explanations and parameter exploration. Educational value from understanding, not points. |
-| Multi-objective optimization | Wiener Index is THE metric in Faulon 1996 paper; adding objectives dilutes focus | Stay true to the paper. If students want more, this teaches the foundation. |
-| Batch processing | Students learn by watching individual runs; automation removes learning experience | Single focused run. The point is to WATCH the algorithm work. |
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| Celery/Redis for task queue | "Production scalability" mindset | Overengineering for educational demo. v1.x runs client-side; comparable scale is single-server. Adds operational complexity (Redis deployment, worker monitoring). | Use FastAPI BackgroundTasks. If scaling needed later, add Celery then. YAGNI principle applies. |
+| WebSocket bidirectional communication | "More modern than SSE" | Adds complexity (connection management, reconnection logic, message framing) for zero benefit. SA is server→client streaming only. SSE has built-in reconnection. | SSE is perfect fit. WebSockets solve different problem (bidirectional real-time). |
+| Database persistence for sessions | "Sessions should survive restarts" | Educational demo users don't expect multi-day sessions. Adds DB schema, migrations, queries for minimal value. | In-memory dict with TTL. Document that sessions expire after 30 min. Export results if important. |
+| Authentication/authorization | "Secure the API" | Users are students in classroom, not customers with accounts. Auth adds login flow, token management, user DB. v1.x is public; v2.0 should be too. | Rate limiting if abuse occurs. Focus on education, not security theater. |
+| GraphQL instead of REST | "More flexible queries" | SA workflow is simple CRUD + SSE. GraphQL adds complexity (schema, resolvers, client libraries) for zero query flexibility benefit. | REST with clear endpoints. Simple is better for educational codebase students might read. |
+| Batch job API | "Run multiple SA configurations" | Changes UX from "watch algorithm work" to "submit job, check later". Defeats educational goal of observing SA decisions. | Single focused run per session. Manual rerun with different params teaches exploration. |
+| Docker containerization | "Modern deployment" | GitHub Pages frontend calls backend → backend needs public URL. Docker adds layer but doesn't solve hosting. Can run FastAPI on Heroku/Railway/Fly.io directly. | Deploy FastAPI directly. Add Dockerfile later if container orchestration needed. |
+| Comprehensive logging framework | "Production observability" | Over-instrumentation for educational demo. Logs should debug dev issues, not monitor production SLA. | Python logging with INFO level. Structlog if complexity grows. Don't prematurely optimize for observability. |
 
 ## Feature Dependencies
 
 ```
-Molecular formula input
-    └──requires──> Formula validation
-    └──enables──> Initial structure generation
-                      └──enables──> SA execution
-                                       └──enables──> 2D visualization
-                                       └──enables──> Optimization chart
+REST API for SA configuration
+    └──requires──> Backend molecule validation (validate formula before accepting)
+    └──enables──> Session state persistence (config stored per session)
+    └──enables──> Start/pause/reset via API (session must exist)
 
-SA execution
-    └──requires──> Parameter controls (kT, cooling, steps)
-    └──enables──> Real-time state display
-    └──enables──> Step-by-step mode
+Start/pause/reset via API
+    └──requires──> Async SA execution (non-blocking execution)
+    └──requires──> Session state persistence (state between control commands)
+    └──enables──> SSE streaming (must have running SA to stream)
 
-Download results
-    └──requires──> 2D visualization (to export image)
-    └──requires──> Optimization chart (to export data)
+SSE streaming of SA progress
+    └──requires──> Async SA execution (background execution while streaming)
+    └──enhances──> Component-wise score streaming (extends event format)
+    └──maintains──> Live chart updates UX from v1.x (critical migration goal)
 
-Detailed acceptance log
-    └──enhances──> Step-by-step mode
-    └──enhances──> Real-time state display
+Multi-component target function framework
+    └──requires──> Backend displacement on native RDKit (need RDKit mol objects, not adjacency matrix)
+    └──enables──> Adjustable component weights via API (framework must exist to weight)
+    └──enables──> Component-wise score streaming (breakdown requires components)
+    └──future──> NMR prediction scoring (not in scope, but architecture enables)
 
-Configurable cooling schedules
-    └──enhances──> Parameter controls
-    └──enables──> Temperature comparison experiments
+Backend displacement on native RDKit
+    └──requires──> RDKit Python installation
+    └──conflicts──> Custom graph adjacency matrix approach (migration replaces frontend graph with RDKit mol)
+    └──enables──> Canonical SMILES via RDKit (RDKit mol is source of truth)
+    └──enables──> 2D SVG molecule rendering (RDKit Draw APIs)
 
-Visual molecule transitions
-    └──requires──> 2D visualization
-    └──enhances──> Real-time algorithm understanding
-    └──conflicts──> Fast animation speed (smooth animation needs slower pace)
+2D SVG molecule rendering
+    └──requires──> Backend displacement on native RDKit (RDKit mol object to render)
+    └──replaces──> RDKit.js WASM rendering in v1.x (frontend consumes SVG from API)
+
+CORS configuration
+    └──enables──> Frontend-backend communication (GitHub Pages → FastAPI)
+    └──required for──> ALL API endpoints (no CORS = API unusable from frontend)
 ```
 
 ### Dependency Notes
 
-- **Molecular formula input requires validation:** Invalid formulas (C-1H4) must be caught before attempting structure generation
-- **SA execution enables visualization:** All visual features depend on algorithm running and generating data
-- **Download requires visualization components:** Can't export what isn't rendered
-- **Visual transitions conflict with speed:** Smooth animation takes time; users watching transitions won't want 1000 steps/second
-- **Preset examples enhance formula input:** Reduces friction for first-time users who don't know valid formulas
-- **Step-by-step enhances detailed log:** Seeing acceptance decisions one at a time is more comprehensible than streaming log
+- **REST API requires validation:** Cannot accept invalid formulas; backend must validate before storing session
+- **SSE requires async execution:** Streaming events while SA runs requires non-blocking execution model
+- **Multi-component framework requires RDKit mols:** Adjacency matrix cannot support RDKit descriptor APIs or future spectroscopic scoring
+- **Backend displacement conflicts with frontend graph:** Migration means RDKit mol is source of truth; cannot mix with adjacency matrix approach
+- **CORS is foundational:** Without CORS, frontend cannot call backend; must configure before any testing
+- **Component framework enables future:** NMR prediction not in v2.0, but architecture must support pluggable components
+- **Session persistence scope:** In-memory dict sufficient for educational use; DB persistence is anti-feature unless multi-day sessions required
 
 ## MVP Definition
 
-### Launch With (v1)
+### Launch With (v2.0 Backend Migration)
 
-Minimum viable product to validate that students can learn SA optimization from this tool.
+Minimum viable migration — feature parity with v1.x plus multi-component architecture foundation.
 
-- [x] **Molecular formula text input** — Core starting point; students enter what they want to explore
-- [x] **Formula validation** — Prevents errors; ensures smooth experience
-- [x] **Preset example molecules** — Reduces barrier to entry; 3 presets (small, medium, branched) let students click and learn
-- [x] **Basic SA parameter controls** — kT initial, cooling rate, max steps with sliders and sensible defaults
-- [x] **Play/Pause/Reset controls** — Students control pacing; critical for comprehension
-- [x] **2D structure display of current best** — Shows what the algorithm found; core chemistry education requirement
-- [x] **Real-time optimization chart** — Wiener Index vs step; makes "optimization" visible not abstract
-- [x] **Real-time algorithm state** — Current step, temperature, current/best Wiener Index; shows algorithm internals
-- [x] **Mobile responsive layout** — Students use phones/tablets; BYOD paradigm is standard in 2026
+**Feature Parity with v1.x (Table Stakes):**
+- [ ] **REST API for SA configuration** — POST /api/sa/configure with formula, SA params, component weights
+- [ ] **Backend molecule validation** — RDKit validates formula and structures
+- [ ] **SSE streaming of SA progress** — Maintains live chart updates UX
+- [ ] **Start/pause/reset via API** — POST /api/sa/{session_id}/{start|pause|reset}
+- [ ] **Current state query endpoint** — GET /api/sa/{session_id}/status
+- [ ] **2D SVG molecule rendering** — Backend replaces RDKit.js rendering
+- [ ] **Session state persistence** — In-memory dict with 30-min TTL
+- [ ] **CORS configuration** — Allow GitHub Pages origin
+- [ ] **Error handling with HTTP codes** — 400/404/409/500 with JSON errors
+- [ ] **Health check endpoint** — GET /api/health
 
-### Add After Validation (v1.x)
+**New Capabilities (Migration Value):**
+- [ ] **Multi-component target function framework** — Pluggable components with weighted sum
+- [ ] **Backend displacement on native RDKit** — Faulon displacement on RDKit.Chem.RWMol
+- [ ] **Canonical SMILES via RDKit** — Authoritative canonicalization
 
-Features to add once students are using the tool and providing feedback.
+### Add After Migration Validation (v2.1)
 
-- [ ] **Step-by-step mode** — Manual advancement; high educational value (trigger: students request finer control)
-- [ ] **Detailed acceptance log** — Shows probabilistic decisions; demystifies SA (trigger: confusion about acceptance)
-- [ ] **Configurable cooling schedules** — Exponential, linear, logarithmic; teaches schedule impact (trigger: advanced students want experimentation)
-- [ ] **Download results** — Export structure image and optimization CSV; enables assignments (trigger: instructors request this)
-- [ ] **Visual molecule transitions** — Animate bond changes; shows displacement operation (trigger: students don't understand how moves work)
-- [ ] **Optimization metrics dashboard** — Acceptance rate, energy delta distribution; deeper insight (trigger: advanced use cases)
+Features to add once backend migration is stable and frontend integrated.
 
-### Future Consideration (v2+)
+- [ ] **Adjustable component weights via API** — Trigger: Users want to explore component tradeoffs
+- [ ] **Component-wise score streaming** — Trigger: Educational value of seeing score breakdown
+- [ ] **RDKit descriptor calculation API** — Trigger: Users want to explore molecular properties
+- [ ] **Graceful cancellation** — Trigger: Long-running SA (>10 min) needs early termination
+- [ ] **Async SA execution with task status** — Trigger: Multiple users or researchers want concurrent sessions
 
-Features to defer until product-market fit and user needs are clearer.
+### Future Consideration (v2.x+)
 
-- [ ] **Temperature reheat** — Advanced SA technique; complex to explain (why defer: not in Faulon 1996 paper, adds conceptual complexity)
-- [ ] **Comparative runs** — Side-by-side parameter comparison; high development cost (why defer: can run twice manually, unclear if valuable enough)
-- [ ] **Annotated molecular features** — Highlight topology contributing to Wiener Index; deeply educational (why defer: high complexity, requires domain expertise to implement well)
-- [ ] **Custom displacement rules** — Modify the 4-atom redistribution; research tool territory (why defer: changes from Faulon algorithm to generic framework)
-- [ ] **Share/permalink URLs** — Encode state in URL for sharing; nice to have (why defer: export accomplishes similar goal, simpler)
-- [ ] **Accessibility enhancements** — Screen reader support, keyboard navigation; important but specialized (why defer: validate core concept first, then invest in accessibility)
+Features to defer until multi-component framework is validated with real usage.
+
+- [ ] **NMR prediction scoring component** — Why defer: Requires NMRShiftDB or ML model integration; high complexity; validates framework value first
+- [ ] **Celery/Redis task queue** — Why defer: Overengineering unless concurrent usage proves BackgroundTasks insufficient
+- [ ] **Database persistence for sessions** — Why defer: In-memory sufficient for educational use; add if multi-day research sessions emerge
+- [ ] **Custom scoring component upload API** — Why defer: Research tool territory; framework must prove valuable first
+- [ ] **Batch configuration comparison** — Why defer: Single-run focus for education; batch is research workflow
+- [ ] **Docker containerization** — Why defer: Deploy directly to Heroku/Railway first; containerize if orchestration needed
+- [ ] **Advanced rate limiting** — Why defer: Add if abuse occurs; don't prematurely optimize
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Molecular formula input | HIGH | LOW | P1 |
-| 2D structure visualization | HIGH | MEDIUM | P1 |
-| Real-time optimization chart | HIGH | MEDIUM | P1 |
-| Play/Pause/Reset controls | HIGH | LOW | P1 |
-| Preset examples | HIGH | LOW | P1 |
-| SA parameter controls | HIGH | MEDIUM | P1 |
-| Real-time state display | HIGH | MEDIUM | P1 |
-| Mobile responsive | HIGH | MEDIUM | P1 |
-| Step-by-step mode | HIGH | MEDIUM | P2 |
-| Detailed acceptance log | MEDIUM | MEDIUM | P2 |
-| Download results | MEDIUM | LOW | P2 |
-| Configurable cooling schedules | MEDIUM | MEDIUM | P2 |
-| Visual molecule transitions | HIGH | HIGH | P2 |
-| Optimization metrics dashboard | MEDIUM | MEDIUM | P2 |
-| Temperature reheat | LOW | MEDIUM | P3 |
-| Comparative runs | MEDIUM | HIGH | P3 |
-| Annotated molecular features | MEDIUM | HIGH | P3 |
-| Custom displacement rules | LOW | HIGH | P3 |
-| Share/permalink URLs | LOW | MEDIUM | P3 |
+| REST API for SA configuration | HIGH | LOW | P1 |
+| SSE streaming of SA progress | HIGH | MEDIUM | P1 |
+| Start/pause/reset via API | HIGH | LOW | P1 |
+| Backend molecule validation | HIGH | MEDIUM | P1 |
+| 2D SVG molecule rendering | HIGH | MEDIUM | P1 |
+| Multi-component framework | HIGH | HIGH | P1 |
+| Backend RDKit displacement | HIGH | HIGH | P1 |
+| Canonical SMILES via RDKit | MEDIUM | LOW | P1 |
+| Session state persistence | MEDIUM | MEDIUM | P1 |
+| CORS configuration | HIGH | LOW | P1 |
+| Error handling | MEDIUM | LOW | P1 |
+| Health check endpoint | LOW | LOW | P1 |
+| Adjustable component weights | HIGH | MEDIUM | P2 |
+| Component-wise score streaming | MEDIUM | LOW | P2 |
+| RDKit descriptor API | MEDIUM | LOW | P2 |
+| Graceful cancellation | MEDIUM | MEDIUM | P2 |
+| Async execution with status | MEDIUM | MEDIUM | P2 |
+| NMR prediction component | HIGH | VERY HIGH | P3 |
+| Celery/Redis | LOW | HIGH | P3 |
+| Database persistence | LOW | HIGH | P3 |
+| Custom component upload | MEDIUM | VERY HIGH | P3 |
+| Batch comparison | MEDIUM | HIGH | P3 |
 
 **Priority key:**
-- P1: Must have for launch (MVP)
-- P2: Should have, add when MVP validated
-- P3: Nice to have, future consideration
+- P1: Must have for v2.0 migration launch (feature parity + multi-component foundation)
+- P2: Should have, add after migration validated (enhanced multi-component exploration)
+- P3: Nice to have, future consideration (research-grade features)
 
 **Prioritization rationale:**
-- **P1 features** form complete learning experience: enter molecule, configure SA, watch optimization, see results
-- **P2 features** deepen understanding: step-through for comprehension, downloads for assignments, transitions for mechanism clarity
-- **P3 features** expand scope: advanced techniques, comparative analysis, customization beyond Faulon paper
+- **P1 features** ensure migration doesn't regress UX (SSE streaming maintains live updates) while establishing multi-component architecture
+- **P2 features** enhance multi-component exploration (component weights, score breakdown) after foundation validated
+- **P3 features** expand into research territory (NMR prediction, custom components) after educational value proven
 
-## Competitor/Comparable Analysis
+## Comparison: v1.x Browser-Based vs v2.0 Backend
 
-| Feature | VisuAlgo (algorithm viz) | MolView (chemistry viz) | TSP SA Demos | Our Approach |
-|---------|--------------------------|-------------------------|--------------|--------------|
-| Play/Pause/Reset | Yes, standard controls | N/A (static) | Yes | Yes - table stakes |
-| Step-by-step mode | Yes, critical feature | N/A | Yes in advanced demos | Yes - P2 after validation |
-| Custom input | Yes, key differentiator | Yes, molecular formulas | Mixed - some demos only presets | Yes - P1 MVP |
-| Preset examples | Yes, multiple algorithms | Yes, compound database | Yes, famous TSP instances | Yes - P1, 3-5 curated |
-| Real-time metrics | Yes, shows comparisons | No | Yes, cost/temperature plots | Yes - P1 chart + state |
-| Mobile support | Yes, 2026 standard | Yes | Mixed | Yes - P1 responsive design |
-| Export/download | No | Yes, multiple formats | Mixed | Yes - P2 when validated |
-| Parameter tuning | Yes, algorithm-specific | N/A | Yes, SA parameters | Yes - P1 kT/cooling/steps |
-| 3D visualization | N/A | Yes, 3D models | N/A | No - anti-feature for 2D graphs |
-| Annotation/explanation | Yes, algorithm steps | Yes, properties | Minimal | P3 - complex to do well |
+| Feature | v1.x (RDKit.js WASM) | v2.0 (FastAPI + RDKit) | Migration Approach |
+|---------|----------------------|------------------------|-------------------|
+| Molecule validation | RDKit.js client-side | RDKit Python backend | Same library, different platform — high confidence |
+| 2D rendering | RDKit.js canvas | Backend SVG via API | Replace WASM rendering with SVG endpoint |
+| SMILES canonicalization | Custom DFS algorithm | RDKit Chem.MolToSmiles | Use authoritative RDKit implementation |
+| SA progress updates | Web Worker postMessage | SSE streaming | SSE maintains real-time UX without client threading |
+| Displacement operation | Custom adjacency matrix | RDKit RWMol bond manipulation | Higher fidelity; use RDKit's bond APIs |
+| Target function | Wiener Index only | Multi-component weighted sum | Core migration value; pluggable architecture |
+| State management | Web Worker in-memory | Backend session dict | Server-side state enables multi-component persistence |
+| Deployment | GitHub Pages static | FastAPI server + GitHub Pages frontend | Frontend stays on Pages; backend needs hosting |
+| Cost | Free (static hosting) | $5-10/mo (Railway/Heroku) | Consider serverless (Vercel/Cloudflare) if cost-sensitive |
 
-**Key insights:**
-- **Algorithm visualization standard:** Play/pause/reset, step-by-step, real-time metrics are expected in all modern algorithm demos
-- **Chemistry visualization standard:** Formula input, 2D/3D structures, export are expected in chemistry tools
-- **Our unique position:** Intersection of both - chemistry + algorithm visualization has specific requirements from both domains
-- **Differentiation opportunity:** Live optimization chart + chemistry structure updates = something neither pure algorithm nor pure chemistry tools do
+**Key migration risks:**
+- **SSE streaming latency:** Web Worker has zero network latency; SSE adds RTT. Mitigation: Event batching (10 updates/sec not 1000/sec).
+- **CORS complexity:** Local dev needs CORS proxy or backend CORS config. Mitigation: vite proxy config for dev, env-based CORS for prod.
+- **RDKit displacement fidelity:** Adjacency matrix is simple; RDKit RWMol has sanitization failures. Mitigation: Extensive test suite replicating v1.x displacement edge cases.
+- **Session state explosion:** In-memory dict grows unbounded if no cleanup. Mitigation: TTL-based expiration (30 min) and max session limit.
 
-## Domain-Specific Patterns
+## "Same UX" Definition for Migration
 
-### Chemistry Education Apps (2026)
+Migration succeeds if users CANNOT TELL the difference except for URL change. Specifically:
 
-**Must have:**
-- Molecular formula as primary input (ChemCollective, MolView pattern)
-- 2D structure rendering (ChemDoodle, MolView, RDKit standard)
-- Mobile-first or responsive (WebMO BYOD research, Aktiv Chemistry mobile-first)
-- Instant feedback (Aktiv Chemistry personalized remediation model)
-- Preset examples (reduces barrier, MolPrime+ property presets)
+**Must maintain:**
+1. Live chart updates (SSE must feel as responsive as Web Worker postMessage)
+2. Instant start/pause/reset (API roundtrip <100ms on reasonable connection)
+3. Molecule rendering quality (SVG must match RDKit.js canvas quality)
+4. Progress update frequency (10-60 updates/sec depending on SA step rate)
+5. Error messages (formula validation errors must be equally clear)
 
-**Valued but not required:**
-- Export capabilities (WebMO allows multiple formats)
-- Integration with LMS (Aktiv Chemistry syncs gradebooks - NOT relevant for standalone demo)
-- Gamification (Interactive Chemistry "Jewels" - NOT appropriate for serious SA demo)
+**Can change (acceptable differences):**
+1. Loading time (backend SSE connection setup may add 200-500ms initial delay)
+2. SMILES format (RDKit Python may canonicalize differently than custom DFS — this is improvement)
+3. Molecule rendering style (SVG vs canvas different but equivalent)
 
-### Algorithm Visualization Education (2026)
+**Must NOT regress:**
+1. Mobile responsiveness (SVG must render well on mobile)
+2. Offline usage (v1.x works offline; v2.0 requires backend connection — document this)
+3. Control responsiveness (pause must stop within 1 SA iteration, not delayed by network)
 
-**Must have:**
-- User control over speed (VisuAlgo research: engagement requires control)
-- Ability to use own input (VisuAlgo key feature)
-- Visual representation of state (all algorithm viz shows this)
-- Step-by-step mode (VisuAlgo research: critical for comprehension)
+## Domain-Specific Patterns for Backend Migration
 
-**Valued but not required:**
-- Comparative visualizations (useful but complex)
-- Performance metrics (helps understanding but not essential)
-- Annotations/explanations (high value when done well)
+### FastAPI + SSE for Algorithm Streaming (2026 Pattern)
 
-### Parameter Tuning Education
+**Standard approach:**
+- SSE endpoint returns `text/event-stream` with keep-alive
+- FastAPI `StreamingResponse` with async generator yields events
+- Frontend `EventSource` consumes stream with auto-reconnect
+- Event format: `data: {json}\n\n` per SSE spec
 
-**Must have:**
-- Interactive controls (ICP-MS TuneSim slider-based approach)
-- Real-time feedback on adjustments (PhET simulations model)
-- Reasonable defaults (students need starting point)
-- Visual indication of parameter effects (seeing impact is the point)
+**Performance considerations:**
+- Batch events (accumulate 10-100ms worth, then yield)
+- Use `asyncio.sleep(0)` to yield control in tight loop
+- Close SSE stream on session end (prevents resource leak)
 
-**Valued but not required:**
-- Presets showing good/bad parameter choices
-- Guided exploration (unguided learning is ineffective per research)
+**Error handling:**
+- SSE errors sent as `event: error` messages
+- Frontend EventSource.onerror triggers reconnection
+- 409 Conflict if session not in RUNNING state
 
-## Educational Context Insights
+### Multi-Component Scoring Architecture (Plugin Pattern)
+
+**Standard approach (scikit-learn inspired):**
+- Base class `ScoringComponent` with `score(mol: Chem.Mol) -> float`
+- Concrete components: `WienerIndexComponent`, `NMRPredictionComponent`
+- Registry pattern: `ComponentRegistry.register("wiener", WienerIndexComponent)`
+- Weighted sum: `total = sum(w * component.score(mol) for component, w in zip(components, weights))`
+
+**Configuration pattern:**
+```python
+{
+  "components": [
+    {"name": "wiener", "weight": 0.6},
+    {"name": "nmr", "weight": 0.4}
+  ]
+}
+```
+
+**Validation:**
+- Weights sum to 1.0 (normalize or reject)
+- Component names exist in registry
+- Each component validates mol compatibility
+
+### RDKit Molecule State Management
+
+**Pattern:**
+- Store `Chem.Mol` as SMILES string in session (serializable)
+- Reconstruct `Chem.Mol` from SMILES when needed (stateless)
+- Never pickle `Chem.Mol` (fragile, version-dependent)
+- Use `Chem.MolToSmiles()` and `Chem.MolFromSmiles()` for serialization
+
+**Displacement pattern:**
+```python
+mol = Chem.RWMol(current_mol)  # Make editable copy
+mol.GetBondBetweenAtoms(i, j).SetBondType(Chem.BondType.DOUBLE)  # Modify
+Chem.SanitizeMol(mol)  # Validate chemistry
+return mol.GetMol()  # Convert back to ROMol
+```
+
+**Sanitization:**
+- ALWAYS call `Chem.SanitizeMol()` after bond changes
+- Catch `Chem.KekulizeException` for aromatic failures
+- Reject displacement if sanitization fails (invalid chemistry)
+
+### FastAPI State Machine for SA Sessions
+
+**State transitions:**
+```
+IDLE → CONFIGURED (POST /configure)
+CONFIGURED → RUNNING (POST /start)
+RUNNING → PAUSED (POST /pause)
+PAUSED → RUNNING (POST /start)
+RUNNING → STOPPED (POST /reset or completion)
+STOPPED → CONFIGURED (POST /configure)
+any → ERROR (on exception)
+```
+
+**Validation:**
+- 409 Conflict if invalid transition (e.g., pause when IDLE)
+- Include allowed_actions in status response for client UX
+- State stored in session dict: `sessions[id]['state']`
+
+## Educational Context Insights for Backend Migration
 
 **From research findings:**
 
-1. **Active engagement beats passive viewing** (VisuAlgo research): Students learn more when they control and question the visualization, not just watch it
-   - **Implication:** Step-by-step mode and parameter tuning are educationally critical
+1. **SSE maintains real-time learning** (FastAPI SSE research): Server-sent events preserve "watch algorithm work" pedagogy without WebSocket complexity
+   - **Implication:** SSE is architecturally correct for one-way streaming; maintain 10-60 updates/sec from v1.x
 
-2. **Own input > provided examples** (VisuAlgo pattern): Students understand better when using their own data
-   - **Implication:** Formula input is P1; presets are just for lowering initial barrier
+2. **Multi-component framework teaches tradeoffs** (Multi-objective optimization research): Students learn by adjusting weights between competing objectives
+   - **Implication:** Component weight API is educationally valuable; priority P2 after base framework validated
 
-3. **Animation aids understanding but can overwhelm** (chart animation research): Breaking down steps helps, but too much animation = information overload
-   - **Implication:** Visual molecule transitions are valuable but should be optional/slow-down is ok
+3. **Backend doesn't diminish transparency** (Computational chemistry education): Students benefit from reading Python RDKit code as much as JavaScript
+   - **Implication:** Backend migration doesn't harm "students read source" value; Python may be more readable
 
-4. **Mobile accessibility is expected** (WebMO BYOD research): Students use personal devices in class
-   - **Implication:** Responsive design is not optional in 2026
+4. **Deployment complexity is real** (Backend migration considerations): v1.x GitHub Pages = $0/mo; v2.0 needs FastAPI hosting
+   - **Implication:** Document hosting options (Railway, Heroku, Fly.io); consider serverless (Vercel, Cloudflare Workers)
 
-5. **Parameter tuning requires balance** (ICP-MS TuneSim): Multiple factors need to be adjusted together; UI must show relationships
-   - **Implication:** kT, cooling, steps controls should show interdependencies
-
-6. **Export enables assessment** (WebMO research): Instructors want students to save and submit work
-   - **Implication:** Download feature enables classroom use; P2 priority
-
-7. **Accessibility is becoming regulatory requirement** (April 2026 WCAG 2.1 AA deadline for higher ed)
-   - **Implication:** Color choices, alt text, keyboard navigation should be considered even in MVP
+5. **Network latency changes UX** (SSE streaming latency): Web Worker postMessage ~0ms; SSE ~10-100ms RTT
+   - **Implication:** Event batching (10 updates/sec) mitigates latency while maintaining "real-time" feel
 
 ## Sources
 
-**Chemistry Education Web Apps:**
-- [ChemCollective](https://chemcollective.org/) - Virtual labs and scenario-based learning
-- [Aktiv Chemistry](https://aktiv.com/) - Personalized remediation and mobile-first design
-- [Interactive Chemistry](https://interactivechemistry.org/) - Gamified molecular building
-- [RSC Education - Chemistry Apps](https://edu.rsc.org/ideas/eight-great-apps-for-chemistry-teachers/2010025.article) - Teacher recommendations
+**FastAPI SSE Streaming:**
+- [Implementing Server-Sent Events (SSE) with FastAPI: Real-Time Updates Made Simple | Medium](https://mahdijafaridev.medium.com/implementing-server-sent-events-sse-with-fastapi-real-time-updates-made-simple-6492f8bfc154)
+- [FastAPI and SSE: How to Build Streamable MCP Servers | Aubergine](https://www.aubergine.co/insights/a-guide-to-building-streamable-mcp-servers-with-fastapi-and-sse)
+- [How to use Server-Sent Events with FastAPI and React | Softgrade](https://www.softgrade.org/sse-with-fastapi-react-langgraph/)
+- [Real-Time Notifications in Python: Using SSE with FastAPI | Medium](https://medium.com/@inandelibas/real-time-notifications-in-python-using-sse-with-fastapi-1c8c54746eb7)
+- [FastAPI + SSE for LLM Tokens: Smooth Streaming without WebSockets | Medium](https://medium.com/@hadiyolworld007/fastapi-sse-for-llm-tokens-smooth-streaming-without-websockets-001ead4b5e53)
 
-**Molecular Visualization:**
-- [Mol* Toolkit](https://molstar.org/) - High-performance WebGL visualization
-- [MolView](https://molview.org/) - Web-based structure drawing and 3D visualization
-- [Wiley - Molecular Graphics Roadmap](https://onlinelibrary.wiley.com/doi/10.1002/pro.70457) - Interactive molecular graphics best practices
-- [RCSB Molecular Graphics Software](https://www.rcsb.org/docs/additional-resources/molecular-graphics-software) - Software overview
+**RDKit Python API:**
+- [Getting Started with the RDKit in Python — RDKit 2025.09.5 documentation](https://www.rdkit.org/docs/GettingStartedInPython.html)
+- [The RDKit Documentation — RDKit 2025.09.5](https://rdkit.org/docs/)
+- [Manipulation of molecules with RDKit in Python for AI models | Medium](https://zoehlerbz.medium.com/manipulation-of-molecules-with-rdkit-in-python-for-ai-models-8023f1e677c7)
+- [RDKit Python Tutorial for Chemists (With Examples) – Runcell Blog](https://www.runcell.dev/blog/rdkit-chemists-tutorial)
 
-**Cheminformatics Education:**
-- [Practical Cheminformatics Tutorials](https://github.com/PatWalters/practical_cheminformatics_tutorials) - Jupyter notebooks
-- [NFDI4Chem](https://nfdi4chem.de/access-to-open-cheminformatics/) - Open cheminformatics access
-- [ChemAxon Platform](https://chemaxon.com/blog/webinar/easily-integrable-instant-cheminformatics-platform) - Web-based tools
+**FastAPI Architecture:**
+- [Modern FastAPI Architecture Patterns for Scalable Production Systems | Medium](https://medium.com/algomart/modern-fastapi-architecture-patterns-for-scalable-production-systems-41a87b165a8b)
+- [Building a Real-time Dashboard with FastAPI and Svelte | TestDriven.io](https://testdriven.io/blog/fastapi-svelte/)
+- [Data Visualization using FastAPI and EasyCharts | Medium](https://medium.com/analytics-vidhya/data-visualization-using-fastapi-and-easycharts-493eda3b1f3d)
 
-**Algorithm Visualization Education:**
-- [VisuAlgo](https://visualgo.net/en) - Data structures and algorithms visualization (research shows active engagement critical)
-- [PMC - Algorithm Education Practices](https://pmc.ncbi.nlm.nih.gov/articles/PMC6302863/) - Discovery learning research
-- [ACM - Algorithm Visualization in CS Education](https://dl.acm.org/doi/10.1145/774833.774846) - Educational impact research
-- [Springer - Algorithm Visualization for Data Structures](https://link.springer.com/chapter/10.1007/978-3-031-78561-0_16) - Teaching effectiveness
+**Multi-Component Scoring:**
+- [GitHub - laurentg/pyscoring: A generic scoring algorithm](https://github.com/laurentg/pyscoring)
+- [How to Develop a Weighted Average Ensemble With Python | MachineLearningMastery](https://machinelearningmastery.com/weighted-average-ensemble-with-python/)
+- [Weighted Scoring Model: Step-by-Step Implementation Guide | Product School](https://productschool.com/blog/product-fundamentals/weighted-scoring-model)
 
-**Simulated Annealing Demos:**
-- [SA Visualization by vgarciasc](https://vgarciasc.github.io/simulated-annealing-viz/) - Clustering application
-- [CSE442 - Visualizing SA](https://cse442-17f.github.io/simulated-annealing/) - Interactive controls
-- [TSP SA by Inspiaaa](https://github.com/Inspiaaa/TSP-Simulated-Annealing) - Interactive TSP solver
-- [Todd Schneider - TSP with SA](https://toddwschneider.com/posts/traveling-salesman-with-simulated-annealing-r-and-shiny/) - R and Shiny implementation
-- [CADApps - Floorplanning SA](https://sites.lafayette.edu/cadapps/main-page/floorplanning-simulated-annealing/) - Temperature/cost visualization
+**FastAPI Background Tasks vs Celery:**
+- [Celery and Background Tasks. Using FastAPI with long running tasks | Medium](https://medium.com/@hitorunajp/celery-and-background-tasks-aebb234cae5d)
+- [Fastapi background tasks vs Celery | Medium](https://haseeb987.medium.com/fastapi-background-tasks-vs-celery-56d2394bf30d)
+- [How to Implement Background Tasks in FastAPI | OneUptime](https://oneuptime.com/blog/post/2026-02-02-fastapi-background-tasks/view)
+- [Background Tasks in FastAPI | FastAPI Tutorial](https://www.fastapitutorial.com/blog/fastapi-background-tasks/)
+- [The Complete Guide to Background Processing with FastAPI × Celery/Redis | Greeden Blog](https://blog.greeden.me/en/2026/01/27/the-complete-guide-to-background-processing-with-fastapi-x-celery-redishow-to-separate-heavy-work-from-your-api-to-keep-services-stable/)
 
-**Computational Chemistry Education:**
-- [WebMO](https://www.webmo.net/) - Web-based quantum chemistry (BYOD paradigm research)
-- [Wiley - WebMO in Education](https://wires.onlinelibrary.wiley.com/doi/epdf/10.1002/wcms.1554) - Barriers minimized through web interface
-- [eChem Notebooks](https://pubs.acs.org/doi/10.1021/acs.jchemed.2c01103) - Interactive computational chemistry
-- [Wiley - FOSS Computational Chemistry](https://wires.onlinelibrary.wiley.com/doi/10.1002/wcms.1610) - Open source tools
+**REST API State Management:**
+- [Designing a True REST State Machine | Nordic APIs](https://nordicapis.com/designing-a-true-rest-state-machine/)
+- [How to design state machines for microservices | Red Hat Developer](https://developers.redhat.com/articles/2021/11/23/how-design-state-machines-microservices)
+- [Designing Complex REST API Structure With State Machine | Medium](https://medium.com/geekculture/designing-complex-rest-api-structure-with-state-machine-cc2b8804d467)
 
-**Molecular Structure Optimization:**
-- [PennyLane - Geometry Optimization](https://pennylane.ai/qml/demos/tutorial_mol_geo_opt/) - Quantum approach demo
-- [Shodor - Geometry Optimization](http://www.shodor.org/chemviz/optimization/students/background.html) - Educational background
+**RDKit SVG Rendering:**
+- [rdkit.Chem.Draw package — RDKit 2025.09.5 documentation](https://www.rdkit.org/docs/source/rdkit.Chem.Draw.html)
+- [Visualization and Rendering | rdkit/rdkit | DeepWiki](https://deepwiki.com/rdkit/rdkit/4-2d3d-functionality)
+- [Transforming a RDKit depiction function into a Web API with Flask @ hectormartinez.dev](https://hectormartinez.dev/posts/rdkit-depiction-web-api-flask/)
 
-**Chemistry Parameter Tuning:**
-- [ACS - ICP-MS TuneSim](https://pubs.acs.org/doi/10.1021/acs.jchemed.8b00343) - Parameter adjustment simulation (slider-based)
-- [ACS - Spectroscopic Parameterization](https://pubs.acs.org/doi/10.1021/acs.jchemed.0c00925) - Computer-aided training
-- [ResearchGate - PhET Interactive Simulations](https://www.researchgate.net/publication/272272239_PhET_Interactive_Simulations_Transformative_Tools_for_Teaching_Chemistry) - Interactive learning
+**FastAPI CORS:**
+- [CORS (Cross-Origin Resource Sharing) - FastAPI](https://fastapi.tiangolo.com/tutorial/cors/)
+- [Blocked by CORS in FastAPI? Here's How to Fix It | David Muraya](https://davidmuraya.com/blog/fastapi-cors-configuration/)
+- [Configuring CORS in FastAPI | GeeksforGeeks](https://www.geeksforgeeks.org/python/configuring-cors-in-fastapi/)
+- [Demystifying CORS in FastAPI & React: A Practical Guide | Medium](https://vinaysit.wordpress.com/2024/11/07/demystifying-cors-in-fastapi-react-a-practical-guide-%F0%9F%8C%90%F0%9F%9A%80/)
 
-**Molecular Structure Input:**
-- [Journal of Cheminformatics - Structure Input on Web](https://jcheminf.biomedcentral.com/articles/10.1186/1758-2946-2-1) - Web input patterns
-- [ChemDoodle 2D Sketcher](https://web.chemdoodle.com/demos/2d-sketcher) - Drawing tools
+**NMR Prediction (Future Spectroscopic Scoring):**
+- [NMR-Solver: Automated Structure Elucidation via Large-Scale Spectral Matching | arXiv](https://arxiv.org/html/2509.00640v1)
+- [Molecular search by NMR spectrum | Scientific Reports](https://www.nature.com/articles/s41598-021-00488-z)
+- [Rapid prediction of NMR spectral properties with quantified uncertainty | Journal of Cheminformatics](https://jcheminf.biomedcentral.com/articles/10.1186/s13321-019-0374-3)
+- [Accurate Prediction of 1H NMR Chemical Shifts Using Machine Learning | PMC](https://pmc.ncbi.nlm.nih.gov/articles/PMC11123270/)
 
-**Chart Animation Education:**
-- [Flourish - Animated Charts](https://flourish.studio/blog/animated-charts/) - Data storytelling with animation
-- [Google Charts - Animation](https://developers.google.com/chart/interactive/docs/animation) - Real-time updates
+**FastAPI State Management:**
+- [Database Session Management | fastapi-practices | DeepWiki](https://deepwiki.com/fastapi-practices/fastapi_best_architecture/7.6-database-session-management)
+- [Getting Started - FastAPI Sessions](https://jordanisaacs.github.io/fastapi-sessions/guide/getting_started/)
+- [Mastering Session Management in FastAPI | Medium](https://medium.com/@rameshkannanyt0078/mastering-session-management-in-fastapi-a-human-friendly-guide-2b59701afa2e)
 
-**Educational Technology 2026:**
-- [Cult of Pedagogy - Ed Tech Tools 2026](https://www.cultofpedagogy.com/6-ed-tech-tools-2026/) - Export and share features
-- [The 74 - Tech Tools for Educators 2026](https://www.the74million.org/article/10-useful-tech-tools-for-educators-in-2026-a-practical-guide/) - Practical guide
-
-**Accessibility:**
-- [Chemistry World - Accessible Science Education](https://www.chemistryworld.com/features/accessible-science-education/3010431.article) - Accessibility features
-- [RSC - Inclusive Chemistry Education](https://books.rsc.org/books/edited-volume/2397/Inclusive-and-Accessible-Chemistry-for-Further-and) - 2026 resource
-- [Techcolite - Educational Websites 2026](https://www.techcolite.com/building-educational-websites-in-2026-ux-access/) - WCAG 2.1 AA compliance deadline April 24, 2026
+**RDKit Molecule Validation:**
+- [rdkit.Chem.MolStandardize.rdMolStandardize module — RDKit 2025.09.4](https://www.rdkit.org/docs/source/rdkit.Chem.MolStandardize.rdMolStandardize.html)
+- [MolVS: Molecule Validation and Standardization — MolVS 0.1.1](https://molvs.readthedocs.io/en/latest/)
 
 ---
 
-**Research confidence: MEDIUM**
+**Research confidence: MEDIUM-HIGH**
 
-**High confidence areas:** Algorithm visualization patterns (VisuAlgo research authoritative), chemistry education tool patterns (multiple consistent sources), parameter tuning pedagogy (peer-reviewed research)
+**High confidence areas:**
+- FastAPI SSE patterns (current 2026 sources, official docs)
+- RDKit Python API (official documentation, version 2025.09.5)
+- CORS configuration (official FastAPI docs)
+- Background tasks vs Celery decision framework (multiple consistent sources)
 
-**Medium confidence areas:** Specific SA demo feature prevalence (found examples but limited comparative data), mobile usage in chemistry education (WebMO research strong but single source)
+**Medium confidence areas:**
+- Multi-component scoring architecture patterns (inferred from scikit-learn patterns, needs domain validation)
+- Migration UX equivalence (SSE latency vs Web Worker postMessage not directly compared in sources)
+- Session state persistence approach (in-memory dict vs database tradeoff context-dependent)
 
-**Low confidence areas:** Annotated molecular features implementation complexity (extrapolated from similar tools), comparative runs educational value (no specific research on this feature)
+**Low confidence areas:**
+- NMR prediction integration complexity (future feature, limited integration examples found)
+- Optimal SSE event batching rate (needs performance testing with actual SA step rates)
+- Faulon displacement on RDKit RWMol fidelity (no existing implementation found, needs validation)
 
 **Validation recommendations:**
-- Conduct user testing with chemistry students to validate P1/P2 priority splits
-- Survey chemistry instructors about download format preferences (PNG vs SVG, CSV vs JSON)
-- Test visual molecule transitions with target users to assess if complexity is justified by educational value
+- Prototype SSE streaming with simulated SA to measure latency vs Web Worker baseline
+- Implement Faulon displacement on RDKit RWMol and validate against v1.x adjacency matrix test suite
+- Survey chemistry instructors about multi-component scoring educational value
+- Benchmark session state TTL and max session limits with realistic classroom usage (30 students)
 
 ---
-*Feature research for: WebFaulon - Interactive SA Molecular Optimization Demo*
-*Researched: 2026-02-14*
+*Feature research for: WebFaulon v2.0 Backend Migration*
+*Researched: 2026-02-15*
 *Researcher: Claude Opus 4.6*

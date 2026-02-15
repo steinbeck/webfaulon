@@ -1,159 +1,400 @@
 # Technology Stack
 
-**Project:** WebFaulon
-**Researched:** 2026-02-14
-**Confidence:** MEDIUM
+**Project:** WebFaulon v2.0 (Python Backend + TypeScript Frontend)
+**Researched:** 2026-02-15 (Backend additions)
+**Confidence:** HIGH (Backend), MEDIUM (Frontend — from 2026-02-14)
 
-## Recommended Stack
+## Overview
 
-### Core Framework
+**v1.0 (Browser-only):** Vite + TypeScript + RDKit.js + Web Workers
+**v2.0 (Backend migration):** FastAPI + RDKit (Python) backend with SSE streaming + Vite frontend visualization layer
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| **Vite** | ^6.x | Build tool and dev server | Industry standard for modern browser apps in 2026. Provides instant HMR, esbuild-powered TypeScript transpilation (20-30x faster than traditional tools), and optimal WASM integration via plugins. Zero-config dev experience with production-ready optimizations. |
-| **TypeScript** | ^5.x | Type-safe development | Mandatory for maintainable scientific applications. Vite's esbuild integration provides instantaneous type stripping. Use strict mode for early error detection in graph algorithms. |
-| **RDKit.js** | 2025.3.4-1.0.0 | Molecular graph manipulation and 2D rendering | Official JavaScript port of RDKit (WASM-based). Only production-ready cheminformatics library for browser. Handles SMILES parsing, graph operations, and native 2D structure rendering. Published 7 months ago (latest stable). |
+This document focuses on **backend stack additions** for v2.0. Frontend stack (Vite, Alpine.js, Chart.js) is **retained** from v1.0 but transitions from computation to visualization-only role.
 
-### UI and Visualization
+---
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| **Apache ECharts** | ^5.x | Real-time SA progress charting | Canvas-based rendering handles live updates efficiently. Renders 10,000 points <100ms. Hybrid rendering (Canvas/SVG/WebGL) for performance at scale. Superior to Chart.js for IoT/scientific data streams. Well-documented streaming data patterns. |
-| **Alpine.js** | ^3.x | Lightweight UI interactivity | 7.1KB framework perfect for parameter controls and UI state without SPA overhead. Declarative syntax in HTML reduces build complexity. Ideal for educational demos where students read source. Alternative: vanilla JS for minimal footprint. |
+## Backend Stack (NEW for v2.0)
 
-### Web Worker Infrastructure
+### Core Backend Framework
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| **Comlink** | ^4.x | Web Worker RPC abstraction | Google Chrome Labs library (1.1KB) that eliminates postMessage boilerplate. Makes worker communication feel synchronous via ES6 Proxies. TypeScript-native with `Comlink.Remote<T>` types. Use with `vite-plugin-comlink` for seamless Vite integration. |
+| **FastAPI** | 0.129.0+ | ASGI web framework for Python backend | Industry standard for async Python APIs in 2026. Native async/await support, automatic OpenAPI docs, built on Starlette/Pydantic. Requires Python 3.10+ (dropped 3.9 in latest version). 5-50x faster than traditional WSGI frameworks due to async architecture. |
+| **RDKit** | 2025.09.5+ | Molecular informatics library | The definitive open-source toolkit for cheminformatics. Provides native Mol objects, graph operations (Wiener index via `Chem.GetDistanceMatrix()`), SMILES parsing, and SVG rendering via `rdMolDraw2D.MolDraw2DSVG`. Essential for Faulon displacement operations on molecular graphs. |
+| **Pydantic** | v2.x | Data validation and serialization | Required by FastAPI 0.128.0+ (v1 support removed). 5-50x faster than v1 due to Rust-based validation core. Provides runtime type checking using Python type hints. Use `BaseModel` for request/response schemas, `Field` for constraints. |
+| **Uvicorn** | 0.34.0+ | ASGI server | Lightning-fast ASGI server for running FastAPI. Single-process works for development and low-traffic production. For production, run multiple Uvicorn workers under Gunicorn for process management and load balancing. |
+| **sse-starlette** | 3.2.0+ | Server-Sent Events for FastAPI | Production-ready SSE implementation following W3C spec. Released Jan 17, 2026. Provides `EventSourceResponse` for streaming SA progress updates to frontend. Native FastAPI integration, automatic disconnect detection, multi-threaded event loop safety. Requires Python 3.9+. |
 
-### Supporting Libraries
+### Supporting Backend Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| **vite-plugin-wasm** | ^3.x | WASM module loading | Required for RDKit.js WASM bundle. Handles `.wasm` file imports and ESM integration proposal limitations in Vite. |
-| **vite-plugin-comlink** | ^5.x | Comlink integration | Simplifies worker setup with Vite. Auto-handles module resolution and HMR for workers. |
+| **httpx** | 0.27.0+ | Async HTTP client | For FastAPI async testing with `AsyncClient`. Modern replacement for requests. Use in tests to make async calls to FastAPI endpoints without network overhead. |
+| **python-multipart** | 0.0.9+ | Form data parsing | Required if accepting file uploads or form-encoded data. FastAPI dependency for multipart form handling. |
+| **python-dotenv** | 1.0.0+ | Environment configuration | Load environment variables from `.env` files. Use for local development configuration (API keys, database URLs). |
+| **pydantic-settings** | 2.x | Settings management | Extends Pydantic for environment-based configuration. Use for structured config from `.env` with validation. |
 
-### Development Tools
+### Development Tools (Backend)
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| **Vitest** | Unit and integration testing | Use `@vitest/web-worker` for worker tests. WASM testing has known issues; use globalSetup for WASM initialization. Browser mode recommended for RDKit.js integration tests. |
-| **ESLint** | Code quality | TypeScript-aware rules. Catch algorithm bugs early. |
-| **Prettier** | Code formatting | Consistent style for classroom code review. |
+| **Poetry** | Dependency and project management | Recommended over pip+requirements.txt for 2026. Uses `pyproject.toml` for config, generates `poetry.lock` for reproducible builds. Run `poetry config virtualenvs.in-project true` to keep `.venv/` in repo. Install deps with `poetry add fastapi uvicorn rdkit`, dev deps with `poetry add --group dev pytest pytest-asyncio pytest-cov`. |
+| **pytest** | Testing framework | Standard for Python testing in 2026. Use with `pytest-asyncio` for async endpoint tests. TestClient (sync) for simple tests, AsyncClient for async/lifespan testing. |
+| **pytest-asyncio** | Async test support | Enables `async def` test functions. Set `asyncio_default_fixture_loop_scope = "function"` in `pyproject.toml` for test isolation. Required for testing FastAPI async endpoints. |
+| **pytest-cov** | Code coverage reporting | Built on coverage.py 7.13.4 (supports Python 3.10-3.15). Run `pytest --cov=app --cov-report=html` for detailed coverage reports. 2026 updates improved async code coverage tracking. |
+| **Ruff** | Linting and formatting | Fast Rust-based linter/formatter replacing Black + isort + Flake8. Configure in `pyproject.toml`. Run `ruff check .` for linting, `ruff format .` for formatting. |
+| **mypy** | Static type checking | Verify type hints match Pydantic models. Configure strict mode in `pyproject.toml`. Catches type errors before runtime. |
+
+---
+
+## Frontend Stack (RETAINED from v1.0)
+
+### Core Frontend Framework
+
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| **Vite** | ^6.x | Build tool and dev server | Industry standard for modern browser apps in 2026. Provides instant HMR, esbuild-powered TypeScript transpilation (20-30x faster than traditional tools). Zero-config dev experience with production-ready optimizations. |
+| **TypeScript** | ^5.x | Type-safe development | Mandatory for maintainable scientific applications. Vite's esbuild integration provides instantaneous type stripping. Use strict mode for early error detection in API client code. |
+
+### UI and Visualization (Frontend)
+
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| **Chart.js** | ^4.x | Real-time SA progress charting | Retained from v1.0. Lightweight canvas-based charting for live SA progress updates via SSE. Receives data from backend, no computation. Alternative: Apache ECharts for >10K data points, but Chart.js sufficient for typical SA runs. |
+| **Alpine.js** | ^3.x | Lightweight UI interactivity | 7.1KB framework perfect for parameter controls and UI state without SPA overhead. Declarative syntax in HTML reduces build complexity. Ideal for educational demos where students read source. Alternative: vanilla JS for minimal footprint. |
+
+### Supporting Frontend Libraries
+
+| Library | Version | Purpose | When to Use |
+|---------|---------|---------|-------------|
+| **EventSource API** | Native | SSE client for streaming SA progress | Browser-native API for consuming Server-Sent Events from FastAPI `/api/sa/stream` endpoint. No library needed. Falls back to polyfill for older browsers. |
+
+---
 
 ## Installation
 
-```bash
-# Core
-npm install @rdkit/rdkit apache-echarts alpinejs comlink
+### Backend Setup (Poetry)
 
-# Build tooling
-npm install -D vite typescript vite-plugin-wasm vite-plugin-comlink
+```bash
+# Navigate to backend directory
+cd backend/
+
+# Initialize Poetry project
+poetry init --name webfaulon-backend --python "^3.10"
+
+# Core backend framework
+poetry add fastapi uvicorn[standard] pydantic pydantic-settings
+
+# RDKit (molecular operations)
+# OPTION 1: Via Poetry (may have binary dependency issues)
+poetry add rdkit
+
+# OPTION 2: Via conda in Poetry venv (RECOMMENDED)
+# Create conda env first, then use Poetry with system Python
+# See "RDKit Installation Methods" section below
+
+# SSE streaming
+poetry add sse-starlette
+
+# Supporting libraries
+poetry add httpx python-multipart python-dotenv
 
 # Dev dependencies
-npm install -D vitest @vitest/web-worker eslint prettier @typescript-eslint/parser @typescript-eslint/eslint-plugin
+poetry add --group dev pytest pytest-asyncio pytest-cov httpx ruff mypy
+
+# Install all dependencies
+poetry install
 ```
+
+### Frontend Setup (npm)
+
+```bash
+# Navigate to frontend directory (or root if monorepo)
+cd frontend/  # or stay in root
+
+# Core (already installed from v1.0, but shown for reference)
+npm install alpinejs chart.js
+
+# Build tooling (already installed from v1.0)
+npm install -D vite typescript
+
+# Dev dependencies (already installed from v1.0)
+npm install -D vitest eslint prettier @typescript-eslint/parser @typescript-eslint/eslint-plugin
+```
+
+### RDKit Installation Methods
+
+**Conda (Recommended):**
+```bash
+conda install -c conda-forge rdkit python=3.12
+```
+- Simpler binary dependency management
+- Better for development environments
+- Works seamlessly with C++ dependencies
+
+**Pip (Alternative):**
+```bash
+pip install rdkit
+```
+- Pre-built wheels for Linux, Windows, macOS
+- Faster for CI/CD if conda isn't available
+- May have issues with binary dependencies on some platforms
+
+**Recommendation:** Use conda for development, conda-forge Docker images for production. If CI/CD is pip-based, use `pip install rdkit` with pre-built wheels.
+
+---
 
 ## Alternatives Considered
 
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| **Charting** | Apache ECharts | Chart.js | Chart.js degrades with large datasets. ECharts' canvas rendering is 10x faster for >1000 points. Chart.js has 2M+ weekly downloads (popular) but not optimized for scientific streaming data. |
-| **Charting** | Apache ECharts | ApexCharts | ApexCharts performance degrades with multiple charts on same page. ECharts handles complex dashboards better. ApexCharts easier API but not needed for single SA chart. |
-| **Charting** | Apache ECharts | LightningChart JS | LightningChart is GPU-accelerated (WebGL) overkill for SA visualization. Commercial license required. ECharts free and sufficient for classroom demo scale. |
-| **UI Framework** | Alpine.js | React | React adds 40KB+ overhead unnecessary for parameter form + start button. Alpine's in-HTML syntax more educational (students see interactivity in source). No build complexity. |
-| **UI Framework** | Alpine.js | Preact | Preact (3KB) lighter than React but still component-model overhead. Alpine's declarative attributes simpler for non-framework developers extending demo. |
-| **UI Framework** | Alpine.js | Vanilla JS | Viable alternative. Choose Alpine if you want reactive data binding without manual DOM updates. Choose vanilla if targeting zero dependencies. |
-| **Worker Communication** | Comlink | Manual postMessage | postMessage requires serialization boilerplate. Comlink's proxy pattern reduces worker code by ~60%. TypeScript types preserved across thread boundary. |
+### Backend Alternatives
+
+| Recommended | Alternative | When to Use Alternative |
+|-------------|-------------|-------------------------|
+| **FastAPI** | Flask + Flask-RESTX | If team is deeply familiar with Flask and doesn't need async. FastAPI is faster and has better async support, but Flask has larger ecosystem. |
+| **sse-starlette** | Custom SSE implementation | Never. sse-starlette is production-ready and follows W3C spec. Custom implementations often have event loop binding issues. |
+| **Poetry** | pip + requirements.txt | If team workflow is pip-based and Poetry adds friction. Poetry is superior for dependency management (lockfiles, separation of prod/dev deps) but has learning curve. |
+| **Uvicorn + Gunicorn** | Hypercorn, Daphne | Uvicorn is standard. Hypercorn for HTTP/2 support, Daphne for Django Channels compatibility. For basic FastAPI, stick with Uvicorn. |
+| **RDKit pip install** | RDKit conda install | **Conda preferred for RDKit**. Pip wheels exist but conda has better binary dependency management. For CI/CD, use conda-forge Docker images or mamba. |
+| **pytest** | unittest | pytest is 2026 standard. unittest is Python stdlib but more verbose. Use pytest unless stdlib-only constraint exists. |
+
+### Frontend Alternatives (from v1.0)
+
+| Recommended | Alternative | Why Not |
+|-------------|-------------|---------|
+| **Alpine.js** | React | React adds 40KB+ overhead unnecessary for parameter form + visualization. Alpine's in-HTML syntax more educational (students see interactivity in source). No build complexity. |
+| **Alpine.js** | Vanilla JS | Viable alternative. Choose Alpine if you want reactive data binding without manual DOM updates. Choose vanilla if targeting zero dependencies. |
+| **Chart.js** | Apache ECharts | ECharts (canvas rendering) is 10x faster for >10K points. For typical SA runs (<5K steps), Chart.js is simpler and sufficient. Upgrade to ECharts if performance issues. |
+
+---
 
 ## What NOT to Use
 
+### Backend Anti-Patterns
+
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| **CDN imports for RDKit.js** | WASM file requires proper CORS and path handling. npm package with Vite bundler ensures correct resolution. Unpkg CDN mentioned in docs but problematic for local dev. | `npm install @rdkit/rdkit` + `vite-plugin-wasm` |
-| **Chart.js for SA visualization** | Canvas rendering struggles with live updates >1000 points. Documentation admits "performance issues with very large datasets." SA may generate 10K+ steps. | Apache ECharts with streaming data configuration |
-| **Web Worker without transfer/Comlink** | Large molecular graphs (100+ atoms) will cause main thread jank if cloned via postMessage. Structured clone has overhead. | Comlink with transferable objects or shared array buffers for state |
-| **navigator.hardwareConcurrency for worker pool** | Over-engineering for single SA run. Algorithm `(2 * cores) + 1` only relevant for parallelized SA (not in Faulon 1996). Single worker sufficient. | One dedicated worker for SA algorithm |
-| **Service Workers** | Not needed for in-browser demo. Adds caching complexity without benefit. Confusion with Web Workers. | Web Workers for computation only |
+| **Pydantic v1** | Deprecated as of FastAPI 0.128.0. No longer supported. 5-50x slower than v2. | **Pydantic v2** with Rust-based validation. Migration guide at docs.pydantic.dev. |
+| **Python 3.9 or below** | FastAPI 0.129.0 dropped Python 3.9 support. Pydantic v2 and modern type hints require 3.10+. | **Python 3.10, 3.11, or 3.12**. 3.12 is fastest for async workloads. |
+| **Synchronous route handlers** | Blocks event loop, kills FastAPI performance. SSE streaming requires async. | **async def** route handlers. Use `await` for I/O. For CPU-bound work (SA iterations), offload to threadpool or process pool. |
+| **requests library** | Synchronous, blocks event loop. Not compatible with async FastAPI. | **httpx** for async HTTP calls. Drop-in replacement with `httpx.AsyncClient()`. |
+| **WebSockets for SA streaming** | Bidirectional overhead for one-way server-to-client stream. Requires more complex frontend code. | **SSE (Server-Sent Events)** via sse-starlette. Simpler, auto-reconnect, works over HTTP, firewall-friendly. |
+| **Flask** | WSGI-based (synchronous). Async support is bolted-on, not native. Slower for async workloads. | **FastAPI** with native async/await and ASGI. |
+| **rdkit-pypi package** | Renamed. Old PyPI package name. | **rdkit** (new PyPI name as of 2019.03+). Update dependencies from `rdkit-pypi` to `rdkit`. |
+
+### Frontend Anti-Patterns (from v1.0, retained for v2.0)
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| **RDKit.js (v2.0 context)** | Replaced by Python RDKit backend. Remove from frontend dependencies. | Python RDKit in FastAPI backend for all molecular operations. |
+| **Web Workers (v2.0 context)** | No longer needed. Computation moved to backend. Remove Comlink and worker infrastructure. | Backend async tasks. Frontend is thin visualization layer. |
+| **CDN imports for dependencies** | Vite bundler ensures correct resolution and optimization. CDN adds CORS complexity. | `npm install` + Vite bundler. |
+
+---
 
 ## Stack Patterns by Variant
 
-**If deploying to GitHub Pages (static hosting):**
-- Use Vite's `base` option for correct asset paths
-- Pre-load WASM in index.html to avoid CORS issues
-- Configure `publicPath` for workers
+### Development Mode
 
-**If adding backend persistence later:**
-- Keep all SA computation client-side (educational transparency)
-- Only use backend for saving/loading parameter presets
-- WASM + Workers remain browser-only
+**Backend:**
+- Use single Uvicorn process: `uvicorn app.main:app --reload --port 8000`
+- Enable CORS for Vite dev server (http://localhost:5173): `app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173"], ...)`
+- Use `.env` file with `python-dotenv` for config
+- RDKit via conda for easier dependency management
 
-**If targeting low-end devices (Chromebooks):**
-- Reduce default SA steps to <5000
-- Add progress throttling (update chart every 10th step, not every step)
-- Consider switching to Chart.js if ECharts bundle size is prohibitive (test <100KB budget)
+**Frontend:**
+- Use Vite dev server: `npm run dev` (port 5173)
+- API calls to http://localhost:8000 (FastAPI backend)
+- SSE connection to `/api/sa/stream` endpoint
+
+### Production Mode
+
+**Backend:**
+- Use Gunicorn with Uvicorn workers: `gunicorn app.main:app -k uvicorn.workers.UvicornWorker -w 4 --bind 0.0.0.0:8000`
+- Workers = 2-4 × CPU cores (balance parallelism vs memory)
+- Docker with conda-forge base image: `FROM continuumio/miniconda3`
+- Reverse proxy (Nginx) for SSL termination and static file serving
+- CORS locked to production frontend domain only
+
+**Frontend:**
+- Vite production build: `npm run build`
+- Deploy static assets to GitHub Pages, Netlify, or Vercel
+- API calls to production FastAPI domain (e.g., https://api.webfaulon.com)
+- SSE connection to production `/api/sa/stream` endpoint
+
+### Testing
+
+**Backend:**
+- Use `TestClient` for synchronous tests (simple routes, no lifespan events)
+- Use `AsyncClient` with `ASGITransport` for async tests (SSE endpoints, lifespan events)
+- Mock RDKit operations for fast unit tests (test SA logic without molecular graph overhead)
+- Integration tests with real RDKit Mol objects for end-to-end validation
+
+**Frontend:**
+- Vitest for unit tests (Alpine.js components, Chart.js integration)
+- Mock fetch/EventSource for API tests (no backend dependency)
+- E2E tests with Playwright for full SSE streaming validation
+
+---
 
 ## Version Compatibility
 
+### Backend
+
 | Package A | Compatible With | Notes |
 |-----------|-----------------|-------|
-| @rdkit/rdkit@2025.3.4-1.0.0 | Node.js >=14 | WASM requires browser with WebAssembly support (Chrome 57+, Firefox 52+, Safari 11+). No IE11. |
-| vite-plugin-wasm@^3.x | Vite ^5.x or ^6.x | Check plugin compatibility with Vite major version. Breaking changes in Vite 6 around worker imports. |
-| comlink@^4.x | vite-plugin-comlink@^5.x | Plugin abstracts Comlink setup. Version sync ensures proxy transfer works correctly. |
-| apache-echarts@^5.x | TypeScript ^4.x+ | Types available via @types/echarts if using older TS. Modern TS has native support. |
-| @vitest/web-worker | Vitest ^1.x or ^2.x | Requires Node 17+ for native structuredClone. Polyfill included for Node 16. WASM testing has known issues (see GitHub #4283, #6118). |
+| FastAPI 0.129.0 | Python 3.10+ | **Breaking:** Dropped Python 3.9 support in 0.129.0. Pin Python ≥3.10. |
+| FastAPI 0.128.0+ | Pydantic v2 only | **Breaking:** Removed Pydantic v1 support in 0.128.0. Use `pydantic>=2.0`. |
+| sse-starlette 3.2.0 | Python 3.9+ | Requires Python ≥3.9. Compatible with FastAPI 0.129.0 (both use Starlette). |
+| RDKit 2025.09.5 | Python 3.10-3.12 | Works with modern Python. **Conda install recommended** for binary dependencies. |
+| pytest-cov 7.x | coverage.py 7.13.4 | Supports Python 3.10-3.15. 2026 updates improved async coverage tracking. |
+| Uvicorn 0.34.0 | Python 3.10+ | Use `uvicorn[standard]` for HTTP/2 and better performance. |
+| httpx 0.27.0 | Python 3.10+ | Modern async HTTP client. Required for AsyncClient testing in FastAPI. |
+
+### Frontend
+
+| Package A | Compatible With | Notes |
+|-----------|-----------------|-------|
+| Vite ^6.x | Node.js 18+ | Breaking changes in Vite 6 around worker imports (irrelevant for v2.0 since workers removed). |
+| Chart.js ^4.x | TypeScript ^5.x | Types included. Modern TS has native support. |
+| Alpine.js ^3.x | Any modern browser | No build step needed. Works with ES6 modules via CDN or npm. |
+
+---
+
+## CORS Configuration for Vite Frontend
+
+FastAPI backend must allow Vite dev server (http://localhost:5173) during development:
+
+```python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+# Development CORS (allow Vite dev server)
+origins = [
+    "http://localhost:5173",  # Vite default dev server
+    "http://localhost:5174",  # Vite preview server
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Lockdown in production to deployment domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+**Production:** Replace `origins` with production domain. Never use `"*"` with `allow_credentials=True`.
+
+---
+
+## Backend Project Structure
+
+Recommended structure for Poetry-based FastAPI + RDKit backend:
+
+```
+backend/
+├── pyproject.toml          # Poetry config, dependencies, dev tools
+├── poetry.lock             # Locked dependency versions
+├── .env                    # Local environment variables (gitignored)
+├── app/
+│   ├── __init__.py
+│   ├── main.py             # FastAPI app, CORS, startup/shutdown
+│   ├── config.py           # Pydantic settings from .env
+│   ├── models.py           # Pydantic request/response models
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── routes.py       # REST endpoints
+│   │   └── sse.py          # SSE streaming endpoints
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── sa_engine.py    # SA algorithm (Faulon displacement)
+│   │   └── rdkit_ops.py    # RDKit Mol operations (Wiener index, SVG rendering)
+│   └── target_functions/
+│       ├── __init__.py
+│       ├── base.py         # Abstract base class for target functions
+│       ├── wiener.py       # Wiener index target function
+│       └── registry.py     # Pluggable target function registry
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py         # Pytest fixtures
+│   ├── test_api.py         # API endpoint tests
+│   ├── test_sse.py         # SSE streaming tests
+│   ├── test_sa_engine.py   # SA algorithm unit tests
+│   └── test_rdkit_ops.py   # RDKit operations tests
+└── README.md
+```
+
+---
 
 ## Confidence Assessment
 
+### Backend Stack
+
 | Technology | Confidence | Source | Notes |
 |------------|------------|--------|-------|
-| RDKit.js | **HIGH** | npm package metadata, official GitHub releases | Version 2025.3.4-1.0.0 verified via npm-compare and libraries.io. Published 7 months ago (Jul 2025). Active maintenance. |
-| Apache ECharts | **HIGH** | Multiple 2026 comparison articles, official docs | Consistently ranked top 3 for real-time data visualization. Canvas performance claims verified across sources. |
-| Vite | **HIGH** | Official documentation, 2026 production setup guides | De facto standard for TypeScript browser apps in 2026. Multiple recent guides confirm continued dominance. |
-| Comlink | **MEDIUM** | Google Chrome Labs GitHub, LogRocket articles | Actively maintained but niche library. Recent integrations (Next.js 15, 2025) confirm ongoing relevance. |
+| FastAPI | **HIGH** | Official release notes, PyPI | Version 0.129.0 verified. Python 3.10+ requirement confirmed. |
+| RDKit | **HIGH** | Official docs, PyPI | Version 2025.09.5 verified. Conda vs pip installation methods confirmed. |
+| sse-starlette | **HIGH** | PyPI, official docs | Version 3.2.0 released Jan 17, 2026. W3C spec compliance verified. |
+| Pydantic v2 | **HIGH** | Official docs, migration guides | Rust-based validation, 5-50x performance improvement verified. |
+| Uvicorn + Gunicorn | **HIGH** | Multiple 2026 production guides | Industry standard for FastAPI production deployment. |
+| Poetry | **HIGH** | 2026 best practices articles | De facto standard for Python dependency management in 2026. |
+| pytest + pytest-asyncio | **HIGH** | Official FastAPI testing docs | Standard for async FastAPI testing. coverage.py 7.13.4 supports Python 3.10-3.15. |
+
+### Frontend Stack (from v1.0)
+
+| Technology | Confidence | Source | Notes |
+|------------|------------|--------|-------|
+| Vite | **HIGH** | Official documentation, 2026 production setup guides | De facto standard for TypeScript browser apps in 2026. |
 | Alpine.js | **MEDIUM** | Framework comparison articles 2026 | Lightweight category recommendation consistent across sources. Not as mainstream as React but established for progressive enhancement use cases. |
-| Vitest Web Workers | **LOW** | GitHub issues, community discussions | `@vitest/web-worker` package exists but WASM compatibility has open issues. Recommend manual testing in browser for RDKit.js integration. |
+| Chart.js | **MEDIUM** | npm-compare, official docs | Sufficient for typical SA runs. Upgrade to ECharts if >10K points. |
+
+---
 
 ## Sources
+
+### Backend Stack (HIGH Confidence)
+
+**Official Documentation:**
+- [FastAPI Release Notes](https://fastapi.tiangolo.com/release-notes/) — Latest version 0.129.0, Python 3.10+ requirement
+- [RDKit Installation](https://www.rdkit.org/docs/Install.html) — Conda vs pip, Python version support
+- [sse-starlette PyPI](https://pypi.org/project/sse-starlette/) — Version 3.2.0, SSE implementation details
+- [RDKit Draw Module](https://www.rdkit.org/docs/source/rdkit.Chem.Draw.html) — SVG rendering with MolDraw2DSVG
+- [FastAPI CORS](https://fastapi.tiangolo.com/tutorial/cors/) — CORSMiddleware configuration
+- [FastAPI Async Tests](https://fastapi.tiangolo.com/advanced/async-tests/) — AsyncClient testing patterns
+- [Pydantic Welcome](https://docs.pydantic.dev/latest/) — Pydantic v2 features
+
+**Community Resources (MEDIUM-HIGH Confidence):**
+- [FastAPI Best Practices Production 2026](https://fastlaunchapi.dev/blog/fastapi-best-practices-production-2026) — Production deployment patterns
+- [Uvicorn vs Gunicorn FastAPI 2026](https://www.geeksforgeeks.org/python/fast-api-gunicorn-vs-uvicorn/) — Worker configuration for production
+- [Poetry for Python Projects 2026](https://thelinuxcode.com/poetry-for-python-projects-overview-benefits-and-practical-workflow-2026/) — Modern dependency management
+- [Server-Sent Events with FastAPI](https://medium.com/@nandagopal05/server-sent-events-with-python-fastapi-f1960e0c8e4b) — SSE implementation patterns
+- [Pydantic Complete Guide 2026](https://devtoolbox.dedyn.io/blog/pydantic-complete-guide) — Pydantic v2 features and performance
+- [Testing FastAPI Applications](https://pythoneo.com/testing-fastapi-applications/) — Pytest, coverage, best practices
+- [The Complete FastAPI × pytest Guide](https://blog.greeden.me/en/2026/01/06/the-complete-fastapi-x-pytest-guide-building-fearless-to-change-apis-with-unit-tests-api-tests-integration-tests-and-mocking-strategies/) — Comprehensive testing strategies (Feb 2026)
+
+**RDKit Cheminformatics (MEDIUM Confidence):**
+- [RDKit Cookbook](https://www.rdkit.org/docs/Cookbook.html) — Wiener index calculation examples
+- [Revisiting Wiener Index](https://bertiewooster.github.io/2023/03/10/Revisiting-a-Classic-Cheminformatics-Paper-The-Wiener-Index.html) — Implementation patterns with GetDistanceMatrix
+
+### Frontend Stack (from 2026-02-14 research)
 
 **RDKit.js:**
 - [GitHub - rdkit/rdkit-js](https://github.com/rdkit/rdkit-js) — Official repository
 - [@rdkit/rdkit on npm](https://libraries.io/npm/@rdkit%2Frdkit) — Version verification (2025.3.4-1.0.0)
-- [RDKit.js Official Site](https://www.rdkitjs.com/) — Usage patterns (WebFetch blocked)
 
 **Charting Libraries:**
-- [JavaScript Chart Libraries in 2026 - Luzmo](https://www.luzmo.com/blog/javascript-chart-libraries) — ECharts performance analysis
-- [6 Best JavaScript Charting Libraries for Dashboards in 2026](https://embeddable.com/blog/javascript-charting-libraries) — Real-time comparison
-- [ApexCharts.js Comparison Table](https://apexcharts.com/javascript-charts-comparison/) — Feature matrix
-- [npm-compare: chart.js vs echarts vs apexcharts](https://npm-compare.com/chart.js,echarts,apexcharts) — Package statistics
+- [JavaScript Chart Libraries in 2026 - Luzmo](https://www.luzmo.com/blog/javascript-chart-libraries) — Chart.js vs ECharts performance
+- [npm-compare: chart.js vs echarts](https://npm-compare.com/chart.js,echarts) — Package statistics
 
 **Frontend Frameworks:**
-- [Top 10 Best Front End Frameworks in 2026 - Imaginary Cloud](https://www.imaginarycloud.com/blog/best-frontend-frameworks) — Alpine.js positioning
 - [Alpine.js: The Minimalist JavaScript Framework - Medium](https://medium.com/@zulfikarditya/alpine-js-the-minimalist-javascript-framework-for-modern-web-development-839382997988) — Size and approach
-- [React vs Alpine.js Comparison](https://formations-developpeur-frontend.itgalaxy.io/react-vs-alpine-comparison/index.html) — Use case analysis
 
 **Vite and TypeScript:**
-- [Complete Guide to Setting Up React with TypeScript and Vite (2026) - Medium](https://medium.com/@robinviktorsson/complete-guide-to-setting-up-react-with-typescript-and-vite-2025-468f6556aaf2) — Best practices
-- [Production-Ready React Project with TypeScript and Vite](https://oneuptime.com/blog/post/2026-01-08-react-typescript-vite-production-setup/view) — Production patterns
 - [Vite Official Documentation](https://vite.dev/guide/) — Official source
 
-**Web Workers:**
-- [Using Web Workers - MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers) — Official W3C API docs
-- [GitHub - GoogleChromeLabs/comlink](https://github.com/GoogleChromeLabs/comlink) — Official Comlink repository
-- [Comlink and Web Workers - LogRocket](https://blog.logrocket.com/comlink-web-workers-match-made-in-heaven/) — Integration patterns
-- [Web Workers, Comlink, Vite - johnnyreilly](https://johnnyreilly.com/web-workers-comlink-vite-tanstack-query) — Vite setup
-
-**Testing:**
-- [@vitest/web-worker on npm](https://www.npmjs.com/package/@vitest/web-worker) — Official package
-- [GitHub vitest/vitest #4283](https://github.com/vitest-dev/vitest/discussions/4283) — WASM testing issues
-- [GitHub vitest/vitest #6118](https://github.com/vitest-dev/vitest/issues/6118) — Worker WASM path resolution
-
-**WebAssembly:**
-- [The State of WebAssembly – 2025 and 2026](https://platform.uno/blog/the-state-of-webassembly-2025-2026/) — Current state
-- [Implementing WebAssembly for High-Performance Web Apps - Better Stack](https://betterstack.com/community/guides/scaling-nodejs/webassembly-web-apps/) — Best practices
-- [vite-plugin-wasm on npm](https://www.npmjs.com/package/vite-plugin-wasm) — Vite WASM integration
-
 ---
-*Stack research for: Browser-based cheminformatics SA visualization*
-*Researched: 2026-02-14*
+*Stack research for: Python RDKit backend with FastAPI and SSE streaming + Vite frontend*
+*Backend researched: 2026-02-15*
+*Frontend researched: 2026-02-14*

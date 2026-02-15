@@ -1,952 +1,1043 @@
-# Architecture Research
+# Architecture Research: FastAPI + Python RDKit Backend Integration
 
-**Domain:** Browser-based Cheminformatics with Computationally Intensive Algorithms
-**Researched:** 2026-02-14
+**Domain:** FastAPI Backend with Python RDKit for Molecular Optimization
+**Researched:** 2026-02-15
 **Confidence:** HIGH
 
-## Standard Architecture
+## Executive Summary
 
-### System Overview
+This research covers the integration of a FastAPI Python backend with RDKit computational chemistry library into the existing browser-based WebFaulon SA demo. The architecture replaces the Web Worker pattern with a client-server model using Server-Sent Events (SSE) for real-time progress streaming.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          UI LAYER (Main Thread)                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐    │
-│  │   UI         │  │   Chart      │  │   Controls   │  │   Status     │    │
-│  │  Container   │  │  Renderer    │  │              │  │   Display    │    │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘    │
-│         │                 │                 │                 │             │
-│         └─────────────────┴─────────────────┴─────────────────┘             │
-│                                    │                                         │
-│                            ┌───────▼────────┐                                │
-│                            │  State Manager │                                │
-│                            │  (Application  │                                │
-│                            │     State)     │                                │
-│                            └───────┬────────┘                                │
-│                                    │                                         │
-├────────────────────────────────────┼─────────────────────────────────────────┤
-│                       COMMUNICATION LAYER                                    │
-│                                    │                                         │
-│                      ┌─────────────▼──────────────┐                          │
-│                      │  Message Queue/Dispatcher  │                          │
-│                      │    (postMessage + rAF)     │                          │
-│                      └─────────────┬──────────────┘                          │
-│                                    │                                         │
-├────────────────────────────────────┼─────────────────────────────────────────┤
-│                      COMPUTATION LAYER (Web Worker)                          │
-│                                    │                                         │
-│  ┌─────────────────────────────────▼──────────────────────────────────┐     │
-│  │                          Worker Thread                              │     │
-│  │                                                                      │     │
-│  │  ┌────────────────┐    ┌────────────────┐    ┌────────────────┐   │     │
-│  │  │  SA Algorithm  │───▶│  RDKit.js      │───▶│  Graph Engine  │   │     │
-│  │  │  Controller    │    │  (WASM)        │    │  (MolGraph)    │   │     │
-│  │  └────────────────┘    └────────────────┘    └────────────────┘   │     │
-│  │         │                      │                      │            │     │
-│  │         │                      │                      │            │     │
-│  │         ▼                      ▼                      ▼            │     │
-│  │  ┌──────────────────────────────────────────────────────────┐     │     │
-│  │  │          Worker State (Iteration Data)                   │     │     │
-│  │  └──────────────────────────────────────────────────────────┘     │     │
-│  │                                                                      │     │
-│  └──────────────────────────────────────────────────────────────────────┘     │
-│                                                                               │
-└───────────────────────────────────────────────────────────────────────────────┘
-```
+**Key architectural shift:** Web Worker + RDKit.js WASM → FastAPI REST API + SSE + Python RDKit
 
-### Component Responsibilities
+## System Overview
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|------------------------|
-| **UI Container** | DOM manipulation, user interactions, display updates | React/Vue component or vanilla JS with DOM refs |
-| **Chart Renderer** | Real-time visualization using canvas/WebGL | Chart.js with decimation + rAF throttling |
-| **Controls** | Start/stop/pause controls, parameter inputs | Event-driven UI components |
-| **Status Display** | Current iteration, temperature, energy metrics | Real-time DOM updates from batched worker messages |
-| **State Manager** | Application state (algorithm status, parameters, history) | Zustand/Jotai for client state or useState/useReducer |
-| **Message Dispatcher** | Worker communication, message batching, rAF scheduling | Custom queue with requestAnimationFrame throttling |
-| **SA Algorithm Controller** | Simulated annealing loop, temperature scheduling, acceptance criteria | Pure JS/TS implementation in worker |
-| **RDKit.js (WASM)** | Molecular calculations (if needed for validation) | Async-initialized WASM module |
-| **Graph Engine (MolGraph)** | Graph representation, bond matrix, valence checking, Wiener Index, BFS/DFS | TypeScript class with adjacency matrix operations |
-| **Worker State** | Current molecule, energy history, iteration counters | In-memory data structures in worker scope |
-
-## Recommended Project Structure
+### v2.0 Architecture with Backend
 
 ```
-src/
-├── components/           # UI components (if using React/Vue)
-│   ├── ChartView/        # Real-time chart visualization
-│   ├── Controls/         # Start/stop/parameter controls
-│   └── MoleculeDisplay/  # Molecular structure display
-├── core/                 # Shared logic (both main + worker)
-│   ├── types.ts          # TypeScript interfaces/types
-│   └── constants.ts      # Shared constants
-├── worker/               # Web Worker code
-│   ├── worker.ts         # Worker entry point
-│   ├── SAEngine.ts       # Simulated annealing implementation
-│   ├── MolGraph.ts       # Molecular graph data structure
-│   └── rdkit-loader.ts   # RDKit.js initialization
-├── services/             # Main thread services
-│   ├── WorkerManager.ts  # Worker communication abstraction
-│   └── MessageBatcher.ts # Message queue + batching
-├── state/                # State management
-│   └── store.ts          # Application state (Zustand/Jotai)
-├── utils/                # Utilities
-│   ├── rAFThrottle.ts    # requestAnimationFrame throttling
-│   └── chartConfig.ts    # Chart.js configuration
-└── main.ts               # Application entry point
+┌──────────────────────────────────────────────────────────────────────────┐
+│                     FRONTEND (Vite + TypeScript)                          │
+├──────────────────────────────────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐  │
+│  │   Alpine.js  │  │   Chart.js   │  │   Molecule   │  │  Parameter  │  │
+│  │   UI State   │  │  Wiener Plot │  │   Display    │  │   Controls  │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬──────┘  │
+│         │                 │                 │                 │          │
+│         └─────────────────┴─────────────────┴─────────────────┘          │
+│                                    │                                      │
+│                     ┌──────────────▼───────────────┐                      │
+│                     │   API Client (fetch/axios)   │                      │
+│                     │   - POST /api/sa/optimize    │                      │
+│                     │   - EventSource /api/sa/...  │                      │
+│                     └──────────────┬───────────────┘                      │
+│                                    │                                      │
+└────────────────────────────────────┼──────────────────────────────────────┘
+                                     │
+                              HTTP + SSE
+                                     │
+┌────────────────────────────────────▼──────────────────────────────────────┐
+│                     BACKEND (FastAPI + Python)                            │
+├───────────────────────────────────────────────────────────────────────────┤
+│                        API LAYER (FastAPI Router)                         │
+│  ┌────────────────────────────────────────────────────────────────────┐   │
+│  │  POST /api/sa/optimize (params) → 202 + job_id                     │   │
+│  │  GET  /api/sa/stream/{job_id}  → SSE progress stream               │   │
+│  │  GET  /api/sa/status/{job_id}  → Job status/result                 │   │
+│  └────────────────────────────────┬───────────────────────────────────┘   │
+│                                   │                                       │
+├───────────────────────────────────┼───────────────────────────────────────┤
+│                       SERVICE LAYER (Business Logic)                      │
+│  ┌────────────────────────────────▼───────────────────────────────────┐   │
+│  │  SAService                                                          │   │
+│  │  - run_optimization(params, callback)                               │   │
+│  │  - get_job_status(job_id)                                           │   │
+│  │  - stream_progress(job_id)                                          │   │
+│  └────────────────────────────────┬───────────────────────────────────┘   │
+│                                   │                                       │
+│  ┌────────────────────────────────▼───────────────────────────────────┐   │
+│  │  TargetFunctionService (Multi-Component Framework)                  │   │
+│  │  - evaluate(mol, components, weights)                               │   │
+│  │  - register_component(name, fn)                                     │   │
+│  └────────────────────────────────┬───────────────────────────────────┘   │
+│                                   │                                       │
+├───────────────────────────────────┼───────────────────────────────────────┤
+│                       CORE LAYER (SA + RDKit)                             │
+│  ┌────────────────────────────────▼───────────────────────────────────┐   │
+│  │  SAEngine (Python port of TypeScript SAEngine)                      │   │
+│  │  - init(formula, params)                                            │   │
+│  │  - step() → SAStepResult                                            │   │
+│  │  - get_state() → SAEngineState                                      │   │
+│  └────────────────────────────────┬───────────────────────────────────┘   │
+│                                   │                                       │
+│  ┌────────────────────────────────▼───────────────────────────────────┐   │
+│  │  MoleculeService (RDKit wrapper)                                    │   │
+│  │  - create_from_formula(formula) → rdkit.Mol                         │   │
+│  │  - apply_displacement(mol, atom_i, atom_j) → rdkit.Mol             │   │
+│  │  - compute_wiener_index(mol) → float                                │   │
+│  │  - generate_svg(mol, width, height) → str                           │   │
+│  │  - mol_to_smiles(mol) → str                                         │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                            │
+├───────────────────────────────────────────────────────────────────────────┤
+│                       STATE LAYER (Job Management)                        │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │  In-Memory Job Store (asyncio.Queue per job_id)                     │  │
+│  │  - job_state: Dict[str, JobState]                                   │  │
+│  │  - progress_queues: Dict[str, asyncio.Queue[ProgressEvent]]         │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                            │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+## Component Responsibilities
+
+### Frontend Components (Modified from v1.0)
+
+| Component | v1.0 Responsibility | v2.0 Changes |
+|-----------|---------------------|--------------|
+| **Alpine.js UI State** | Worker communication via Comlink | HTTP client + EventSource SSE listener |
+| **API Client** | N/A (was Comlink) | REST API calls + SSE stream management |
+| **Chart.js** | Worker progress callbacks | SSE event handlers for progress data |
+| **Molecule Display** | RDKit.js WASM canvas rendering | Backend SVG rendering (img src="data:image/svg+xml;base64,...") |
+
+### Backend Components (NEW)
+
+| Component | Responsibility | Implementation |
+|-----------|----------------|----------------|
+| **FastAPI Router** | HTTP endpoints for SA optimization | APIRouter with async handlers |
+| **SAService** | Orchestrate SA execution, manage job lifecycle | Async service with background tasks |
+| **TargetFunctionService** | Multi-component scoring framework | Plugin registry + weighted composition |
+| **SAEngine** | Python port of TypeScript SAEngine | Stateful class with step() method |
+| **MoleculeService** | RDKit operations wrapper | Stateless utility functions |
+| **Job Store** | Track active/completed jobs, route progress events | In-memory Dict + asyncio.Queue |
+| **SSE Streamer** | Stream progress events to client | async generator yielding `data: {...}\n\n` |
+
+## Recommended Project Structure (Monorepo)
+
+```
+webfaulon/                           # Monorepo root
+├── frontend/                        # Vite frontend (moved from src/)
+│   ├── src/
+│   │   ├── core/                    # Types only (shared with backend via OpenAPI)
+│   │   │   └── types.ts             # Frontend-specific types
+│   │   ├── ui/                      # Alpine.js components
+│   │   │   ├── app.ts               # Main Alpine component
+│   │   │   ├── chart.ts             # Chart.js integration
+│   │   │   └── presets.ts           # Molecule presets
+│   │   ├── services/                # NEW: API client layer
+│   │   │   ├── api-client.ts        # HTTP client (fetch wrapper)
+│   │   │   └── sse-client.ts        # EventSource wrapper
+│   │   └── main.ts                  # Vite entry point
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── vite.config.ts
+│
+├── backend/                         # NEW: FastAPI backend
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py                  # FastAPI app + CORS + startup
+│   │   ├── api/                     # API routes
+│   │   │   ├── __init__.py
+│   │   │   └── sa.py                # /api/sa/* endpoints
+│   │   ├── services/                # Business logic
+│   │   │   ├── __init__.py
+│   │   │   ├── sa_service.py        # SA orchestration
+│   │   │   ├── molecule_service.py  # RDKit wrapper
+│   │   │   └── target_fn_service.py # Multi-component scoring
+│   │   ├── core/                    # Core SA implementation
+│   │   │   ├── __init__.py
+│   │   │   ├── sa_engine.py         # Python port of SAEngine.ts
+│   │   │   ├── displacement.py      # Faulon displacement (eqs 7-11)
+│   │   │   ├── cooling.py           # Temperature schedules
+│   │   │   └── wiener.py            # Wiener index via RDKit
+│   │   ├── models/                  # Pydantic models
+│   │   │   ├── __init__.py
+│   │   │   ├── sa_params.py         # SAParams, SAResult
+│   │   │   └── progress.py          # ProgressEvent, JobStatus
+│   │   ├── state/                   # Job state management
+│   │   │   ├── __init__.py
+│   │   │   └── job_store.py         # In-memory job tracking
+│   │   └── utils/                   # Utilities
+│   │       ├── __init__.py
+│   │       └── rdkit_helpers.py     # RDKit initialization/setup
+│   ├── tests/                       # pytest tests
+│   │   ├── test_sa_engine.py
+│   │   ├── test_molecule_service.py
+│   │   └── test_api.py
+│   ├── requirements.txt             # fastapi, uvicorn, rdkit, pydantic
+│   ├── pyproject.toml               # Python project metadata (optional)
+│   └── README.md
+│
+├── shared/                          # NEW: Shared types (optional)
+│   └── schema.yaml                  # OpenAPI schema for type generation
+│
+├── .planning/                       # GSD planning (unchanged)
+├── package.json                     # Root workspace config (pnpm/npm workspaces)
+├── README.md                        # Project-level README
+└── docker-compose.yml               # Dev environment (optional)
 ```
 
 ### Structure Rationale
 
-- **components/:** UI layer isolated from computation logic, easily testable and swappable
-- **core/:** Shared types prevent duplication between main thread and worker
-- **worker/:** All computation isolated in Web Worker to prevent UI blocking
-- **services/:** Communication layer abstracts worker complexity from UI
-- **state/:** Centralized state management for UI consistency
-- **utils/:** Reusable helpers for performance optimization (throttling, batching)
+- **Monorepo layout:** Keeps frontend/backend in sync, simplifies development workflow, enables shared types via OpenAPI codegen
+- **Separate `frontend/` and `backend/`:** Clear boundaries, independent build systems (Vite vs Python), independent deployments
+- **Backend layered architecture:** API → Service → Core → Models (standard FastAPI pattern)
+- **Job store in-memory:** Sufficient for demo/classroom use; can swap for Redis/DB later
+- **No shared code between TS/Python:** Use OpenAPI schema as source of truth for types (generate TS types from Pydantic models)
 
-## Architectural Patterns
+## Data Flow Patterns
 
-### Pattern 1: Web Worker for Computation Isolation
+### Pattern 1: SA Optimization Request Flow
 
-**What:** Offload the SA algorithm to a dedicated Web Worker, keeping the main thread free for UI updates and user interactions.
+**What:** Client initiates SA optimization, receives progress updates via SSE, displays final result
 
-**When to use:** Always for computationally intensive algorithms that would block the UI thread (>16ms per iteration at 60fps).
-
-**Trade-offs:**
-- **Pros:** Non-blocking UI, better responsiveness, prevents INP degradation
-- **Cons:** Serialization overhead for data transfer, debugging complexity, no DOM access in worker
-
-**Example:**
-```typescript
-// Main thread: WorkerManager.ts
-export class WorkerManager {
-  private worker: Worker;
-  private messageQueue: Message[] = [];
-  private batchSize = 10;
-
-  constructor() {
-    this.worker = new Worker(new URL('../worker/worker.ts', import.meta.url));
-    this.worker.onmessage = this.handleMessage.bind(this);
-    this.worker.onerror = this.handleError.bind(this);
-  }
-
-  start(params: SAParams) {
-    this.worker.postMessage({ type: 'START', params });
-  }
-
-  stop() {
-    this.worker.postMessage({ type: 'STOP' });
-  }
-
-  private handleMessage(e: MessageEvent) {
-    const { type, data } = e.data;
-
-    if (type === 'ITERATION_UPDATE') {
-      this.messageQueue.push(data);
-      if (this.messageQueue.length >= this.batchSize) {
-        this.flushQueue();
-      }
-    }
-  }
-
-  private flushQueue() {
-    // Batch processing for UI updates
-    const batch = this.messageQueue.splice(0, this.batchSize);
-    requestAnimationFrame(() => {
-      // Update UI with batched data
-      this.updateChart(batch);
-    });
-  }
-}
-
-// Worker thread: worker.ts
-let saEngine: SAEngine | null = null;
-let isRunning = false;
-
-self.onmessage = (e: MessageEvent) => {
-  const { type, params } = e.data;
-
-  switch (type) {
-    case 'START':
-      saEngine = new SAEngine(params);
-      isRunning = true;
-      runLoop();
-      break;
-    case 'STOP':
-      isRunning = false;
-      break;
-  }
-};
-
-function runLoop() {
-  if (!isRunning || !saEngine) return;
-
-  // Run one SA iteration
-  const result = saEngine.iterate();
-
-  // Send update to main thread
-  self.postMessage({
-    type: 'ITERATION_UPDATE',
-    data: {
-      iteration: result.iteration,
-      energy: result.energy,
-      temperature: result.temperature
-    }
-  });
-
-  // Continue loop
-  setTimeout(runLoop, 0); // Or use setInterval pattern
-}
+**Request Flow:**
 ```
-
-### Pattern 2: Message Batching + requestAnimationFrame Throttling
-
-**What:** Batch multiple worker messages together and throttle UI updates to the browser's refresh rate (60fps) using requestAnimationFrame.
-
-**When to use:** When worker sends many messages per second (hundreds to thousands) but UI only needs ~60 updates/sec.
-
-**Trade-offs:**
-- **Pros:** Prevents UI thrashing, reduces render overhead, smoother animations, better Core Web Vitals (INP)
-- **Cons:** Slight latency between computation and display (negligible for visualization), increased complexity
-
-**Example:**
-```typescript
-// services/MessageBatcher.ts
-export class MessageBatcher {
-  private queue: any[] = [];
-  private rafId: number | null = null;
-  private callback: (batch: any[]) => void;
-
-  constructor(callback: (batch: any[]) => void) {
-    this.callback = callback;
-  }
-
-  push(message: any) {
-    this.queue.push(message);
-
-    // Schedule flush if not already scheduled
-    if (this.rafId === null) {
-      this.rafId = requestAnimationFrame(() => this.flush());
-    }
-  }
-
-  private flush() {
-    if (this.queue.length > 0) {
-      const batch = this.queue.splice(0);
-      this.callback(batch);
-    }
-    this.rafId = null;
-  }
-}
-
-// Usage in WorkerManager
-this.batcher = new MessageBatcher((batch) => {
-  // Update chart with last N points or decimated data
-  const decimatedData = this.decimateIfNeeded(batch);
-  this.updateChart(decimatedData);
-});
-
-worker.onmessage = (e) => {
-  this.batcher.push(e.data);
-};
-```
-
-### Pattern 3: Transferable Objects for Large Data
-
-**What:** Use transferable objects (ArrayBuffer, TypedArray) for zero-copy data transfer between main thread and worker.
-
-**When to use:** When transferring large datasets (adjacency matrices, molecular coordinates, large arrays) between threads.
-
-**Trade-offs:**
-- **Pros:** No serialization/deserialization overhead, instant transfer, lower memory usage
-- **Cons:** Original buffer becomes neutered (unusable), requires careful ownership management
-
-**Example:**
-```typescript
-// Main thread: Transferring adjacency matrix to worker
-const adjacencyMatrix = new Uint8Array(1000 * 1000); // Large matrix
-// ... populate matrix ...
-
-// Transfer ownership to worker
-worker.postMessage(
-  { type: 'INIT_GRAPH', matrix: adjacencyMatrix.buffer },
-  [adjacencyMatrix.buffer] // Transferable list
-);
-// adjacencyMatrix.buffer is now neutered/unusable on main thread
-
-// Worker thread: Receiving transferred data
-self.onmessage = (e) => {
-  if (e.data.type === 'INIT_GRAPH') {
-    const matrix = new Uint8Array(e.data.matrix);
-    // Now worker owns this memory
-  }
-};
-```
-
-### Pattern 4: Async WASM Initialization Pattern
-
-**What:** Initialize RDKit.js WASM module asynchronously in worker before starting computation.
-
-**When to use:** Always when using WASM libraries that require initialization (RDKit.js, TensorFlow.js, etc.).
-
-**Trade-offs:**
-- **Pros:** Proper initialization, error handling, prevents race conditions
-- **Cons:** Adds initialization latency, requires promise handling
-
-**Example:**
-```typescript
-// worker/rdkit-loader.ts
-import initRDKitModule from '@rdkit/rdkit';
-
-let RDKit: any = null;
-
-export async function initRDKit(): Promise<void> {
-  if (RDKit) return; // Already initialized
-
-  try {
-    RDKit = await initRDKitModule({
-      locateFile: (filename: string) => {
-        return `/wasm/${filename}`;
-      }
-    });
-    console.log(`RDKit version: ${RDKit.version()}`);
-  } catch (error) {
-    console.error('Failed to initialize RDKit:', error);
-    throw error;
-  }
-}
-
-export function getRDKit() {
-  if (!RDKit) {
-    throw new Error('RDKit not initialized. Call initRDKit() first.');
-  }
-  return RDKit;
-}
-
-// worker/worker.ts
-import { initRDKit } from './rdkit-loader';
-
-let initialized = false;
-
-self.onmessage = async (e) => {
-  if (!initialized) {
-    self.postMessage({ type: 'STATUS', message: 'Initializing RDKit...' });
-    await initRDKit();
-    initialized = true;
-    self.postMessage({ type: 'READY' });
-  }
-
-  // Handle messages after initialization
-  // ...
-};
-```
-
-### Pattern 5: Chart.js Decimation + Performance Optimization
-
-**What:** Configure Chart.js for optimal performance with large, streaming datasets using decimation, disabled animations, and pre-prepared data.
-
-**When to use:** When displaying thousands+ data points with real-time updates.
-
-**Trade-offs:**
-- **Pros:** Smooth 60fps updates even with large datasets, lower memory usage
-- **Cons:** Some visual detail lost with decimation, animations disabled
-
-**Example:**
-```typescript
-// utils/chartConfig.ts
-export const chartConfig: ChartConfiguration = {
-  type: 'line',
-  data: {
-    datasets: [{
-      label: 'Energy',
-      data: [],
-      parsing: false, // Pre-formatted data
-      normalized: true // Data already sorted
-    }]
-  },
-  options: {
-    animation: false, // Critical for performance
-    responsive: true,
-    maintainAspectRatio: false,
-    elements: {
-      line: {
-        tension: 0 // Disable Bézier curves (faster)
-      },
-      point: {
-        radius: 0 // Don't render points (faster)
-      }
-    },
-    scales: {
-      x: {
-        type: 'linear',
-        min: 0,
-        max: 1000, // Fixed range avoids recalculation
-        ticks: {
-          sampleSize: 10 // Sample ticks for speed
-        }
-      },
-      y: {
-        min: 0,
-        max: 100, // Fixed range avoids recalculation
-        ticks: {
-          sampleSize: 10
-        }
-      }
-    },
-    plugins: {
-      decimation: {
-        enabled: true,
-        algorithm: 'lttb', // Largest Triangle Three Buckets
-        samples: 500 // Max points to display
-      }
-    }
-  }
-};
-
-// components/ChartView/index.ts
-export class ChartView {
-  private chart: Chart;
-  private dataBuffer: Point[] = [];
-  private maxPoints = 10000;
-
-  updateData(newPoints: Point[]) {
-    // Add to buffer
-    this.dataBuffer.push(...newPoints);
-
-    // Trim if exceeds max
-    if (this.dataBuffer.length > this.maxPoints) {
-      this.dataBuffer = this.dataBuffer.slice(-this.maxPoints);
-    }
-
-    // Update chart (Chart.js decimation handles rendering)
-    this.chart.data.datasets[0].data = this.dataBuffer;
-    this.chart.update('none'); // Skip animations
-  }
-}
-```
-
-### Pattern 6: State Machine for Algorithm Control
-
-**What:** Use explicit state machine pattern for algorithm lifecycle (IDLE → INITIALIZING → RUNNING → PAUSED → STOPPED → ERROR).
-
-**When to use:** Always for complex asynchronous operations with multiple states and transitions.
-
-**Trade-offs:**
-- **Pros:** Clear state transitions, easier debugging, prevents invalid operations
-- **Cons:** More boilerplate code, state management overhead
-
-**Example:**
-```typescript
-// worker/SAEngine.ts
-enum SAState {
-  IDLE = 'IDLE',
-  INITIALIZING = 'INITIALIZING',
-  RUNNING = 'RUNNING',
-  PAUSED = 'PAUSED',
-  STOPPED = 'STOPPED',
-  ERROR = 'ERROR'
-}
-
-export class SAEngine {
-  private state: SAState = SAState.IDLE;
-
-  async initialize(params: SAParams) {
-    if (this.state !== SAState.IDLE) {
-      throw new Error(`Cannot initialize from state ${this.state}`);
-    }
-
-    this.state = SAState.INITIALIZING;
-    // ... initialization logic ...
-    this.state = SAState.RUNNING;
-  }
-
-  pause() {
-    if (this.state !== SAState.RUNNING) {
-      throw new Error(`Cannot pause from state ${this.state}`);
-    }
-    this.state = SAState.PAUSED;
-  }
-
-  resume() {
-    if (this.state !== SAState.PAUSED) {
-      throw new Error(`Cannot resume from state ${this.state}`);
-    }
-    this.state = SAState.RUNNING;
-  }
-
-  stop() {
-    if (![SAState.RUNNING, SAState.PAUSED].includes(this.state)) {
-      throw new Error(`Cannot stop from state ${this.state}`);
-    }
-    this.state = SAState.STOPPED;
-  }
-
-  iterate() {
-    if (this.state !== SAState.RUNNING) {
-      return null;
-    }
-    // ... SA iteration logic ...
-  }
-}
-```
-
-## Data Flow
-
-### Request Flow
-
-```
-[User clicks START]
-    │
+[Alpine.js UI]
+    │ POST /api/sa/optimize {formula, params}
     ▼
-[Controls Component] → [State Manager] → [WorkerManager.start()]
-    │                       │                   │
-    │                       ▼                   ▼
-    │               [Update UI state]    [postMessage to Worker]
-    │                                            │
-    │                                            ▼
-    │                                  [Worker: Initialize SA]
-    │                                            │
-    │                                            ▼
-    │                                  [Worker: Run SA loop]
-    │                                            │
-    │                          ┌─────────────────┴─────────────────┐
-    │                          ▼                                   ▼
-    │              [Worker: Calculate energy]        [Worker: Update graph]
-    │                          │                                   │
-    │                          └─────────────────┬─────────────────┘
-    │                                            ▼
-    │                              [Worker: postMessage with results]
-    │                                            │
-    │                                            ▼
-    └──────────────────────┐         [MessageBatcher.push()]
-                           │                     │
-                           │                     ▼
-                           │         [requestAnimationFrame]
-                           │                     │
-                           │                     ▼
-                           │           [MessageBatcher.flush()]
-                           │                     │
-                           ▼                     ▼
-                    [State Manager] ←────[Batched data]
-                           │
-                           ▼
-            ┌──────────────┴──────────────┐
-            ▼                              ▼
-    [Chart Update]                [Status Display Update]
+[FastAPI Router]
+    │ Create job_id, spawn background task
+    ▼
+[SAService.run_optimization()]
+    │ Initialize SAEngine, run step() loop
+    │ Emit progress to asyncio.Queue
+    ▼
+[Job Store]
+    │ Store progress events in queue
+    │ Store final result in job_state
+
+PARALLEL:
+
+[Alpine.js UI]
+    │ GET /api/sa/stream/{job_id} (EventSource)
+    ▼
+[FastAPI SSE Endpoint]
+    │ async for event in job_store.progress_queues[job_id]
+    │ yield f"data: {json.dumps(event)}\n\n"
+    ▼
+[EventSource onmessage]
+    │ Update chart, molecule display
 ```
 
-### State Management
+**Code Example:**
+```python
+# backend/app/api/sa.py
+from fastapi import APIRouter, BackgroundTasks
+from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
 
+router = APIRouter(prefix="/api/sa")
+
+@router.post("/optimize")
+async def optimize(params: SAParams, background_tasks: BackgroundTasks):
+    job_id = generate_job_id()
+    job_store.create_job(job_id, params)
+    background_tasks.add_task(sa_service.run_optimization, job_id, params)
+    return {"job_id": job_id, "status": "started"}
+
+@router.get("/stream/{job_id}")
+async def stream_progress(job_id: str):
+    async def event_generator():
+        queue = job_store.get_progress_queue(job_id)
+        while True:
+            event = await queue.get()
+            if event["type"] == "complete":
+                yield {"data": json.dumps(event)}
+                break
+            yield {"data": json.dumps(event)}
+
+    return EventSourceResponse(event_generator())
 ```
-[Application State Store]
-    ├─ algorithmState: { status, iteration, temperature, energy }
-    ├─ parameters: { initialTemp, coolingRate, maxIterations }
-    ├─ history: { energyData[], acceptedMoves[], rejectedMoves[] }
-    └─ ui: { isPaused, isRunning, error }
-            │
-            ▼
-    [React Components / UI]
-    (subscribe to state changes)
-            │
-            ▼
-    [Render UI based on state]
-```
-
-### Key Data Flows
-
-1. **Initialization Flow:**
-   - User configures parameters → State Manager → Worker receives config → RDKit.js initializes (async) → Graph structure created → Ready signal to UI
-
-2. **Iteration Flow (Hot Path):**
-   - Worker runs SA iteration → Calculates energy → Posts message → MessageBatcher queues → rAF triggers → Batch processed → Chart updates
-
-3. **Control Flow:**
-   - User clicks pause/resume/stop → State Manager updates → Worker receives control message → Changes internal state → Acknowledges to UI
-
-4. **Error Flow:**
-   - Worker encounters error → Posts error message → State Manager sets error state → UI displays error → Algorithm stops
-
-## Scaling Considerations
-
-| Concern | Initial (Demo) | Medium (10K iterations) | Large (1M+ iterations) |
-|---------|----------------|-------------------------|------------------------|
-| **Data Storage** | In-memory arrays | In-memory with decimation | IndexedDB for history, keep window in memory |
-| **Chart Rendering** | Chart.js with decimation | Same + aggressive decimation (500 points) | Consider WebGL (Plotly.js, ECharts GL) |
-| **Message Frequency** | Every iteration | Batch every 10-100 iterations | Batch every 100-1000 iterations |
-| **Worker Strategy** | Single dedicated worker | Same | Consider splitting (one for SA, one for validation) |
-| **Memory Management** | Basic arrays | Circular buffers for history | Typed arrays + manual GC triggers |
-
-### Scaling Priorities
-
-1. **First bottleneck: Chart rendering with large datasets**
-   - **What breaks:** Canvas redraws become expensive beyond ~10K points
-   - **Fix:** Enable Chart.js decimation plugin with LTTB algorithm, limit visible points to 500-1000
-   - **Alternative:** Switch to WebGL-based charting (Plotly.js, ECharts GL, LightningChart JS)
-
-2. **Second bottleneck: Message passing overhead**
-   - **What breaks:** Posting message every iteration (1000s/sec) causes serialization overhead
-   - **Fix:** Batch messages (send every N iterations or every X ms), use transferable objects for large data
-   - **Alternative:** Use SharedArrayBuffer for shared state (requires CORS headers)
-
-3. **Third bottleneck: Memory from history accumulation**
-   - **What breaks:** Storing millions of iteration records exhausts browser memory
-   - **Fix:** Use circular buffer, store only last N iterations + sampled history
-   - **Alternative:** Move history to IndexedDB, keep sliding window in memory
-
-## Anti-Patterns
-
-### Anti-Pattern 1: Running SA in Main Thread
-
-**What people do:** Implement SA algorithm directly in React component or main thread code.
-
-**Why it's wrong:**
-- Blocks UI thread during each iteration (SA can take seconds/minutes)
-- Causes janky scrolling, unresponsive controls
-- Terrible Core Web Vitals (INP > 500ms)
-- Browser may show "unresponsive script" warning
-
-**Do this instead:**
-Always use Web Worker for any computation taking >16ms. Even if initial performance seems OK, it will degrade with larger molecules or more iterations.
 
 ```typescript
-// BAD: Main thread blocks
-function runSA() {
-  for (let i = 0; i < 10000; i++) {
-    const newState = generateNeighbor(currentState);
-    const energy = calculateEnergy(newState); // Expensive!
-    // UI is frozen during this entire loop
-  }
-}
+// frontend/src/services/sse-client.ts
+export async function startOptimization(params: SAParams, onProgress: (data: ProgressEvent) => void) {
+  const { job_id } = await fetch('/api/sa/optimize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params)
+  }).then(r => r.json());
 
-// GOOD: Worker handles computation
-// worker.ts
-self.onmessage = (e) => {
-  if (e.data.type === 'START') {
-    for (let i = 0; i < 10000; i++) {
-      const newState = generateNeighbor(currentState);
-      const energy = calculateEnergy(newState);
-
-      if (i % 100 === 0) {
-        self.postMessage({ iteration: i, energy }); // Periodic updates
-      }
+  const eventSource = new EventSource(`/api/sa/stream/${job_id}`);
+  eventSource.onmessage = (e) => {
+    const event = JSON.parse(e.data);
+    onProgress(event);
+    if (event.type === 'complete') {
+      eventSource.close();
     }
-  }
-};
-```
+  };
 
-### Anti-Pattern 2: Sending Worker Messages Every Iteration Without Batching
-
-**What people do:** Send postMessage for every SA iteration, causing thousands of messages per second.
-
-**Why it's wrong:**
-- Each postMessage has serialization overhead
-- Main thread overwhelmed processing messages
-- Chart updates 1000x/sec when display only needs 60fps
-- Wastes CPU on redundant work
-
-**Do this instead:**
-Batch messages and throttle UI updates with requestAnimationFrame.
-
-```typescript
-// BAD: Flooding main thread
-// worker.ts
-for (let i = 0; i < 100000; i++) {
-  self.postMessage({ iteration: i, energy }); // 100K messages!
-}
-
-// GOOD: Batched messages
-// worker.ts
-const batch = [];
-for (let i = 0; i < 100000; i++) {
-  batch.push({ iteration: i, energy });
-
-  if (batch.length >= 100) {
-    self.postMessage({ type: 'BATCH', data: batch });
-    batch.length = 0;
-  }
+  return { job_id, eventSource };
 }
 ```
 
-### Anti-Pattern 3: Initializing RDKit.js on Every Message
+**Trade-offs:**
+- ✅ Simpler than WebSockets (HTTP-based, auto-reconnect)
+- ✅ Scales well with async Python (thousands of concurrent SSE streams)
+- ✅ Built-in browser EventSource API
+- ⚠️ Unidirectional (server → client only; need separate POST for pause/cancel)
+- ⚠️ HTTP/1.1 connection limit (6 per domain; use HTTP/2 in production)
 
-**What people do:** Call initRDKitModule() every time worker receives a message.
+### Pattern 2: Multi-Component Target Function
 
-**Why it's wrong:**
-- WASM initialization takes 100s of ms
-- Creates multiple instances (memory leak)
-- Async initialization races with computation
+**What:** Pluggable scoring framework supporting weighted combination of multiple molecular properties
 
-**Do this instead:**
-Initialize once on worker startup, wait for ready signal before accepting work.
+**Architecture:**
+```python
+# backend/app/services/target_fn_service.py
+from typing import Callable, Dict
+from rdkit.Chem import Mol
 
-```typescript
-// BAD: Reinitializing
-self.onmessage = async (e) => {
-  const RDKit = await initRDKitModule(); // Slow!
-  // ... use RDKit ...
-};
+ComponentFn = Callable[[Mol], float]
 
-// GOOD: One-time initialization
-let RDKit = null;
-let isReady = false;
+class TargetFunctionService:
+    def __init__(self):
+        self._components: Dict[str, ComponentFn] = {}
 
-(async () => {
-  RDKit = await initRDKitModule();
-  isReady = true;
-  self.postMessage({ type: 'READY' });
-})();
+    def register(self, name: str, fn: ComponentFn):
+        """Register a scoring component"""
+        self._components[name] = fn
 
-self.onmessage = (e) => {
-  if (!isReady) {
-    self.postMessage({ type: 'ERROR', message: 'Not ready' });
-    return;
-  }
-  // ... use RDKit ...
-};
+    def evaluate(self, mol: Mol, weights: Dict[str, float]) -> float:
+        """Compute weighted sum of components"""
+        score = 0.0
+        for name, weight in weights.items():
+            if name not in self._components:
+                raise ValueError(f"Unknown component: {name}")
+            score += weight * self._components[name](mol)
+        return score
+
+# Register components at startup
+target_fn_service = TargetFunctionService()
+target_fn_service.register("wiener_index", molecule_service.compute_wiener_index)
+target_fn_service.register("logp", lambda mol: Descriptors.MolLogP(mol))
+target_fn_service.register("molecular_weight", lambda mol: Descriptors.MolWt(mol))
 ```
 
-### Anti-Pattern 4: Not Using Chart.js Decimation for Large Datasets
-
-**What people do:** Feed all 100K+ data points directly to Chart.js without decimation.
-
-**Why it's wrong:**
-- Canvas draws all points even if many pixels overlap
-- Causes stuttering/lag on chart updates
-- High memory usage from large data arrays
-- Poor UX with slow panning/zooming
-
-**Do this instead:**
-Enable decimation plugin and limit visible points.
-
-```typescript
-// BAD: No decimation
-const chartConfig = {
-  type: 'line',
-  data: {
-    datasets: [{
-      data: allHundredThousandPoints // Slow!
-    }]
-  }
-};
-
-// GOOD: With decimation
-const chartConfig = {
-  type: 'line',
-  data: {
-    datasets: [{
-      data: dataPoints,
-      parsing: false,
-      normalized: true
-    }]
+**API Usage:**
+```json
+POST /api/sa/optimize
+{
+  "formula": "C6H14",
+  "target_components": {
+    "wiener_index": 1.0,
+    "logp": 0.0
   },
-  options: {
-    animation: false, // Critical!
-    plugins: {
-      decimation: {
-        enabled: true,
-        algorithm: 'lttb',
-        samples: 500 // Only render 500 points
-      }
-    }
-  }
-};
-```
-
-### Anti-Pattern 5: Blocking Worker with Synchronous Operations
-
-**What people do:** Use synchronous loops without yielding control in worker.
-
-**Why it's wrong:**
-- Worker becomes unresponsive to stop/pause messages
-- Cannot interrupt long-running computations
-- Poor UX (user clicks stop, nothing happens)
-
-**Do this instead:**
-Use async/await or setTimeout to yield control periodically.
-
-```typescript
-// BAD: Blocking loop
-self.onmessage = (e) => {
-  if (e.data.type === 'START') {
-    for (let i = 0; i < 1000000; i++) {
-      // ... expensive work ...
-      // Cannot receive 'STOP' message during this loop!
-    }
-  }
-};
-
-// GOOD: Interruptible loop
-let isRunning = false;
-
-self.onmessage = (e) => {
-  if (e.data.type === 'START') {
-    isRunning = true;
-    runLoop(0);
-  } else if (e.data.type === 'STOP') {
-    isRunning = false;
-  }
-};
-
-async function runLoop(iteration) {
-  if (!isRunning || iteration >= 1000000) return;
-
-  // ... expensive work ...
-
-  if (iteration % 1000 === 0) {
-    // Yield control every 1000 iterations
-    setTimeout(() => runLoop(iteration + 1), 0);
-  } else {
-    runLoop(iteration + 1);
-  }
+  "optimization_mode": "MINIMIZE",
+  ...
 }
 ```
 
-### Anti-Pattern 6: Copying Large Adjacency Matrices Between Threads
+**Trade-offs:**
+- ✅ Extensible: add new components without changing core SA logic
+- ✅ Composable: combine multiple properties with weights
+- ✅ Testable: each component is a pure function
+- ⚠️ Performance: weighted sum computed on every SA step (minimize component count)
+- ⚠️ Weight normalization: client must ensure weights sum to desired total
 
-**What people do:** Send large typed arrays via postMessage without using transferables.
+### Pattern 3: RDKit Molecule Lifecycle
 
-**Why it's wrong:**
-- Data is copied (structured clone), wasting memory
-- Slow serialization/deserialization for large arrays
-- 2x memory usage (copy in each thread)
+**What:** Manage RDKit Mol objects through SA iterations (creation, mutation, validation, rendering)
 
-**Do this instead:**
-Use transferable objects for zero-copy transfer.
+**Lifecycle:**
+```python
+# backend/app/services/molecule_service.py
+from rdkit import Chem
+from rdkit.Chem import rdMolDescriptors, Draw, AllChem
 
-```typescript
-// BAD: Copying data
-const matrix = new Float32Array(10000); // 40KB
-worker.postMessage({ matrix }); // Copied, slow
+class MoleculeService:
+    @staticmethod
+    def create_from_formula(formula: str) -> Chem.Mol:
+        """Create initial linear structure from molecular formula"""
+        # Parse formula (e.g., "C6H14" → 6 carbons, 14 hydrogens)
+        atom_counts = parse_formula(formula)
 
-// GOOD: Transferring ownership
-const matrix = new Float32Array(10000);
-worker.postMessage({ matrix }, [matrix.buffer]); // Zero-copy, fast
-// matrix is now neutered on main thread
+        # Create linear chain of heavy atoms
+        mol = Chem.RWMol()
+        for elem, count in atom_counts.items():
+            if elem == 'H':
+                continue  # Implicit hydrogens
+            for _ in range(count):
+                mol.AddAtom(Chem.Atom(elem))
+
+        # Add single bonds in linear chain
+        for i in range(mol.GetNumAtoms() - 1):
+            mol.AddBond(i, i + 1, Chem.BondType.SINGLE)
+
+        # Sanitize and return
+        mol = mol.GetMol()
+        Chem.SanitizeMol(mol)
+        return mol
+
+    @staticmethod
+    def apply_displacement(mol: Chem.Mol, atom_i: int, atom_j: int) -> Chem.Mol:
+        """Apply Faulon displacement (eqs 7-11): modify bond between atoms i, j"""
+        mol_rw = Chem.RWMol(mol)  # Make editable copy
+
+        bond = mol_rw.GetBondBetweenAtoms(atom_i, atom_j)
+        if bond is None:
+            # No bond → try to add one (if valid)
+            if can_add_bond(mol_rw, atom_i, atom_j):
+                mol_rw.AddBond(atom_i, atom_j, Chem.BondType.SINGLE)
+        else:
+            # Bond exists → cycle order (1 → 2 → 3 → 0)
+            current_order = bond.GetBondTypeAsDouble()
+            new_order = cycle_bond_order(current_order)
+            if new_order == 0:
+                mol_rw.RemoveBond(atom_i, atom_j)
+            else:
+                bond.SetBondType(order_to_bond_type(new_order))
+
+        # Validate and return
+        new_mol = mol_rw.GetMol()
+        try:
+            Chem.SanitizeMol(new_mol)
+            if is_connected(new_mol):
+                return new_mol
+        except:
+            pass
+
+        return None  # Invalid displacement
+
+    @staticmethod
+    def compute_wiener_index(mol: Chem.Mol) -> float:
+        """Compute Wiener index (sum of pairwise distances)"""
+        dist_matrix = Chem.GetDistanceMatrix(mol)
+        # Sum upper triangle (avoid double-counting)
+        n = mol.GetNumAtoms()
+        return sum(dist_matrix[i, j] for i in range(n) for j in range(i+1, n))
+
+    @staticmethod
+    def generate_svg(mol: Chem.Mol, width: int = 300, height: int = 300) -> str:
+        """Generate SVG depiction of molecule"""
+        AllChem.Compute2DCoords(mol)  # Generate 2D coordinates
+        drawer = Draw.rdMolDraw2D.MolDraw2DSVG(width, height)
+        drawer.DrawMolecule(mol)
+        drawer.FinishDrawing()
+        return drawer.GetDrawingText()
+
+    @staticmethod
+    def mol_to_smiles(mol: Chem.Mol) -> str:
+        """Convert RDKit Mol to canonical SMILES"""
+        return Chem.MolToSmiles(mol)
 ```
+
+**Integration with SAEngine:**
+```python
+# backend/app/core/sa_engine.py
+class SAEngine:
+    def __init__(self, params: SAParams, molecule_service: MoleculeService, target_fn_service: TargetFunctionService):
+        self.params = params
+        self.mol_service = molecule_service
+        self.target_fn = target_fn_service
+        self.current_mol = molecule_service.create_from_formula(params.formula)
+        self.current_energy = target_fn_service.evaluate(self.current_mol, params.target_components)
+        ...
+
+    def step(self):
+        # Select random atom pair
+        i, j = random_atom_pair(self.current_mol)
+
+        # Attempt displacement
+        proposed_mol = self.mol_service.apply_displacement(self.current_mol, i, j)
+        if proposed_mol is None:
+            self.invalid_moves += 1
+            return
+
+        # Evaluate new energy
+        proposed_energy = self.target_fn.evaluate(proposed_mol, self.params.target_components)
+
+        # Metropolis acceptance
+        delta_e = proposed_energy - self.current_energy  # Assuming MINIMIZE
+        if self.metropolis_accept(delta_e, self.temperature):
+            self.current_mol = proposed_mol
+            self.current_energy = proposed_energy
+            ...
+```
+
+**Trade-offs:**
+- ✅ RDKit handles valence, aromaticity, sanitization automatically
+- ✅ Rich descriptor library (logP, MW, TPSA, etc.)
+- ✅ High-quality 2D/3D coordinate generation
+- ⚠️ RDKit is synchronous (blocks event loop; use `asyncio.to_thread()` if needed)
+- ⚠️ Memory: RDKit Mol objects are not trivial; avoid keeping full history in memory
 
 ## Integration Points
 
-### External Libraries
+### New Components vs Modified Components
 
-| Library | Integration Pattern | Notes |
+| Component | Status | Changes |
+|-----------|--------|---------|
+| **Alpine.js app.ts** | MODIFIED | Replace Comlink worker calls with `fetch()` + `EventSource` |
+| **chart.ts** | MODIFIED | Accept progress data from SSE instead of worker callbacks |
+| **molecule-renderer.ts** | MODIFIED | Render SVG from backend instead of canvas rendering with RDKit.js |
+| **presets.ts** | UNCHANGED | Same preset molecules |
+| **MolGraph.ts** | REMOVED | Replaced by Python `MoleculeService` (RDKit `Chem.Mol`) |
+| **SAEngine.ts** | REMOVED | Replaced by Python `SAEngine` |
+| **sa-worker.ts** | REMOVED | Replaced by FastAPI backend |
+| **API Client** | NEW | HTTP client wrapper for `/api/sa/*` endpoints |
+| **SSE Client** | NEW | EventSource wrapper with reconnection logic |
+| **FastAPI app** | NEW | Backend application with routing, CORS, startup |
+| **SAService** | NEW | SA orchestration with background tasks |
+| **MoleculeService** | NEW | RDKit wrapper (Python equivalent of MolGraph) |
+| **TargetFunctionService** | NEW | Multi-component scoring framework |
+| **Job Store** | NEW | In-memory job state and progress queue management |
+
+### External Service Integration
+
+| Service | Integration Pattern | Notes |
 |---------|---------------------|-------|
-| **RDKit.js** | Async initialization in worker, singleton pattern | Initialize once, cache instance, use for validation/rendering |
-| **Chart.js** | Canvas-based rendering on main thread | Configure with decimation, disable animations, use rAF throttling |
-| **React/Vue** (optional) | Component-based UI, state management hooks | Use state manager (Zustand/Jotai) for worker communication |
-| **Vite/Webpack** | Bundle with Web Worker support | Use `new Worker(new URL('./worker.ts', import.meta.url))` pattern |
-| **TypeScript** | Shared types between main + worker | Define interfaces in `core/types.ts` |
+| **RDKit (Python)** | Direct import (`from rdkit import Chem`) | Pre-installed in backend environment (conda or pip) |
+| **FastAPI** | ASGI server (uvicorn) | `uvicorn app.main:app --reload` for dev |
+| **Vite Dev Server** | Proxy to backend in dev mode | `vite.config.ts`: `proxy: { '/api': 'http://localhost:8000' }` |
+| **GitHub Pages** | Static frontend only | Backend deployed separately (e.g., Render, Railway, Fly.io) |
 
 ### Internal Boundaries
 
 | Boundary | Communication | Notes |
 |----------|---------------|-------|
-| **UI ↔ State Manager** | Direct function calls / hooks | Synchronous, React re-renders on state change |
-| **State Manager ↔ WorkerManager** | Direct function calls | Synchronous method calls (start, stop, pause) |
-| **WorkerManager ↔ Worker** | postMessage / onmessage | Asynchronous, structured cloning or transferables |
-| **Worker ↔ RDKit.js** | Direct function calls (same thread) | Synchronous within worker |
-| **State Manager ↔ Chart** | Direct function calls | Synchronous, update chart data array |
-| **MessageBatcher ↔ Chart** | requestAnimationFrame callbacks | Throttled to 60fps |
+| **Frontend ↔ Backend** | HTTP (REST) + SSE | CORS enabled for dev (localhost:5173) and production (GitHub Pages) |
+| **API Router ↔ Service** | Direct function calls (dependency injection) | FastAPI `Depends()` for service injection |
+| **Service ↔ Core** | Direct function calls | Services are thin orchestration layer, Core contains SA logic |
+| **SAEngine ↔ MoleculeService** | Composition (service passed to constructor) | Engine delegates all RDKit operations to MoleculeService |
 
-## Build Order Implications
+## Architectural Patterns
 
-Based on dependencies and complexity, suggested implementation order:
+### Pattern 1: Server-Sent Events (SSE) for Progress Streaming
 
-### Phase 1: Core Infrastructure
-1. **Molecular Graph Engine** - Build `MolGraph.ts` with adjacency matrix, valence checking, connectivity, Wiener Index
-   - *Why first:* Foundation for all SA operations, can be tested independently
-   - *Testing:* Unit tests for graph operations, no UI needed
+**What:** Unidirectional HTTP streaming from server to client for real-time progress updates
 
-2. **Web Worker Setup** - Create worker entry point, message handling skeleton
-   - *Why second:* Test worker communication before complex logic
-   - *Testing:* Echo messages back and forth, verify lifecycle
+**When to use:**
+- Server needs to push frequent updates to client (every N steps)
+- Client does not need to send data back during stream (pause/cancel via separate POST)
+- Simpler than WebSockets (no bidirectional protocol handshake)
 
-3. **Basic UI Shell** - Minimal HTML/CSS with start/stop buttons, status display
-   - *Why third:* Visual feedback for testing worker integration
-   - *Testing:* Manual testing of controls
+**Trade-offs:**
+- ✅ Built-in browser API (`EventSource`)
+- ✅ Automatic reconnection on disconnect
+- ✅ Works over HTTP (no WebSocket firewall issues)
+- ✅ Scales well with async Python (`asyncio.Queue` + generators)
+- ⚠️ Unidirectional (need separate endpoint for client → server commands)
+- ⚠️ HTTP/1.1 connection limit (6 per domain; use HTTP/2)
+- ⚠️ No binary data (text-only; base64 encode if needed)
 
-### Phase 2: Algorithm Implementation
-4. **SA Algorithm Core** - Implement SA loop, temperature schedule, acceptance criteria
-   - *Why fourth:* Can test in worker with simple logging
-   - *Testing:* Verify algorithm converges on known test cases
+**Example:**
+```python
+# Backend: SSE endpoint
+from sse_starlette.sse import EventSourceResponse
 
-5. **Displacement Function** - Implement Faulon's 4-atom bond order modification
-   - *Why fifth:* Core SA operation, depends on MolGraph
-   - *Testing:* Unit tests for valence preservation, reversibility
+@router.get("/stream/{job_id}")
+async def stream_progress(job_id: str):
+    async def event_generator():
+        queue = job_store.get_progress_queue(job_id)
+        try:
+            while True:
+                event = await queue.get()
+                yield {
+                    "event": event["type"],  # "progress" | "complete" | "error"
+                    "data": json.dumps(event["data"])
+                }
+                if event["type"] in ("complete", "error"):
+                    break
+        except asyncio.CancelledError:
+            # Client disconnected
+            pass
 
-6. **Energy Calculation** - Implement Wiener Index or other graph metric
-   - *Why sixth:* Completes SA loop
-   - *Testing:* Compare with reference values
+    return EventSourceResponse(event_generator())
 
-### Phase 3: Communication & Optimization
-7. **Message Batching** - Implement `MessageBatcher` with rAF throttling
-   - *Why seventh:* Optimize worker→main communication
-   - *Testing:* Verify batching reduces message frequency
+# Frontend: EventSource client
+const eventSource = new EventSource(`/api/sa/stream/${jobId}`);
+eventSource.addEventListener('progress', (e) => {
+  const data = JSON.parse(e.data);
+  updateChart(data.step, data.bestEnergy);
+  updateMolecule(data.bestSvg);
+});
+eventSource.addEventListener('complete', (e) => {
+  const result = JSON.parse(e.data);
+  displayFinalResult(result);
+  eventSource.close();
+});
+```
 
-8. **WorkerManager** - Abstract worker communication, lifecycle management
-   - *Why eighth:* Clean API for UI layer
-   - *Testing:* Test start/stop/pause/resume transitions
+### Pattern 2: Dependency Injection with FastAPI `Depends()`
 
-9. **State Management** - Set up Zustand/Jotai store for application state
-   - *Why ninth:* Centralize state for UI consistency
-   - *Testing:* Verify state updates propagate to UI
+**What:** Service instances injected into route handlers via FastAPI's DI system
 
-### Phase 4: Visualization
-10. **Chart Integration** - Set up Chart.js with optimization (decimation, no animations)
-    - *Why tenth:* Data is flowing, ready to visualize
-    - *Testing:* Performance testing with 10K+ points
+**When to use:**
+- Services need shared state (e.g., job store, RDKit session)
+- Want to mock services in tests
+- Enforce layered architecture (API → Service → Core)
 
-11. **Real-time Updates** - Connect batched worker messages to chart updates
-    - *Why eleventh:* Complete the visualization loop
-    - *Testing:* Verify smooth 60fps updates
+**Trade-offs:**
+- ✅ Testable (easy to mock dependencies)
+- ✅ Explicit dependencies (clear from function signature)
+- ✅ Lazy initialization (services created on-demand)
+- ✅ Scoped lifetimes (request, application, singleton)
+- ⚠️ Learning curve (FastAPI DI syntax)
+- ⚠️ Runtime overhead (minimal, but not zero)
 
-### Phase 5: Polish & Advanced Features
-12. **RDKit.js Integration** - Add async initialization, molecular rendering
-    - *Why twelfth:* Optional enhancement, not critical path
-    - *Testing:* Test WASM initialization, rendering
+**Example:**
+```python
+# backend/app/api/sa.py
+from fastapi import Depends
+from app.services.sa_service import SAService, get_sa_service
+from app.state.job_store import JobStore, get_job_store
 
-13. **UI Enhancement** - Add parameter controls, better styling, molecule display
-    - *Why last:* Polish after core functionality works
-    - *Testing:* User testing, visual QA
+@router.post("/optimize")
+async def optimize(
+    params: SAParams,
+    background_tasks: BackgroundTasks,
+    sa_service: SAService = Depends(get_sa_service),
+    job_store: JobStore = Depends(get_job_store)
+):
+    job_id = generate_job_id()
+    job_store.create_job(job_id, params)
+    background_tasks.add_task(sa_service.run_optimization, job_id, params)
+    return {"job_id": job_id}
 
-**Critical Dependencies:**
-- MolGraph MUST be built before SA Algorithm
-- Worker MUST be set up before SA Algorithm runs
-- MessageBatcher SHOULD be implemented before chart integration
-- State Management SHOULD be in place before complex UI
+# backend/app/services/sa_service.py
+_sa_service_instance = None
 
-**Parallel Work Opportunities:**
-- MolGraph can be developed in parallel with Worker setup
-- UI shell can be developed in parallel with SA Algorithm
-- Chart configuration can be prototyped in parallel with Message Batching
+def get_sa_service() -> SAService:
+    global _sa_service_instance
+    if _sa_service_instance is None:
+        _sa_service_instance = SAService(
+            molecule_service=get_molecule_service(),
+            target_fn_service=get_target_fn_service()
+        )
+    return _sa_service_instance
+```
+
+### Pattern 3: Background Tasks with `BackgroundTasks`
+
+**What:** Run long-running SA optimization in background without blocking HTTP response
+
+**When to use:**
+- Operation takes longer than reasonable HTTP timeout (~30s)
+- Client needs immediate response (job_id) to start polling/streaming
+- Want to return HTTP 202 Accepted (operation started, not complete)
+
+**Trade-offs:**
+- ✅ Non-blocking (HTTP response returns immediately)
+- ✅ Built into FastAPI (no external task queue needed for simple cases)
+- ✅ Runs in same process (no serialization overhead)
+- ⚠️ Not persistent (lost on server restart; use Celery for production)
+- ⚠️ No retry/failure handling (add manually or use Celery)
+- ⚠️ Single server only (does not scale horizontally; use Celery for multi-worker)
+
+**Example:**
+```python
+@router.post("/optimize")
+async def optimize(params: SAParams, background_tasks: BackgroundTasks):
+    job_id = generate_job_id()
+    background_tasks.add_task(sa_service.run_optimization, job_id, params)
+    return {"job_id": job_id, "status": "started"}
+
+# backend/app/services/sa_service.py
+async def run_optimization(self, job_id: str, params: SAParams):
+    try:
+        engine = SAEngine(params, self.molecule_service, self.target_fn_service)
+        engine.init()
+
+        queue = job_store.get_progress_queue(job_id)
+
+        while not engine.is_complete():
+            engine.step()
+
+            # Emit progress every 10 steps
+            if engine.step_number % 10 == 0:
+                state = engine.get_state()
+                await queue.put({
+                    "type": "progress",
+                    "data": {
+                        "step": state.step,
+                        "bestEnergy": state.best_energy,
+                        "bestSvg": self.molecule_service.generate_svg(state.best_mol)
+                    }
+                })
+
+        # Emit completion
+        result = engine.get_result()
+        await queue.put({
+            "type": "complete",
+            "data": {
+                "bestEnergy": result.best_energy,
+                "bestSmiles": self.molecule_service.mol_to_smiles(result.best_mol)
+            }
+        })
+    except Exception as e:
+        await queue.put({"type": "error", "data": {"message": str(e)}})
+```
+
+### Pattern 4: Pydantic Models for Type Safety
+
+**What:** Use Pydantic models for request/response validation and OpenAPI schema generation
+
+**When to use:**
+- Always (FastAPI best practice)
+- Shared types between frontend/backend (generate TS types from Pydantic)
+- Input validation with helpful error messages
+
+**Trade-offs:**
+- ✅ Automatic validation (type checking, range checks, regex patterns)
+- ✅ OpenAPI schema generation (auto-docs at `/docs`)
+- ✅ Type hints for IDE autocomplete
+- ✅ JSON serialization/deserialization
+- ⚠️ Runtime overhead (validation on every request; minimal but not zero)
+- ⚠️ Learning curve (Pydantic v2 syntax)
+
+**Example:**
+```python
+# backend/app/models/sa_params.py
+from pydantic import BaseModel, Field
+from typing import Dict
+
+class SAParams(BaseModel):
+    formula: str = Field(..., pattern=r"^([A-Z][a-z]?\d*)+$", example="C6H14")
+    initial_temp: float = Field(100.0, gt=0, description="Initial temperature (kT)")
+    cooling_schedule_k: int = Field(8, ge=0, le=32, description="Cooling schedule index")
+    steps_per_cycle: int = Field(500, gt=0)
+    num_cycles: int = Field(4, gt=0)
+    optimization_mode: str = Field("MINIMIZE", pattern="^(MINIMIZE|MAXIMIZE)$")
+    target_components: Dict[str, float] = Field(
+        {"wiener_index": 1.0},
+        description="Weighted scoring components"
+    )
+
+class SAResult(BaseModel):
+    best_energy: float
+    best_smiles: str
+    best_svg: str
+    final_energy: float
+    initial_energy: float
+    total_steps: int
+    accepted_moves: int
+    rejected_moves: int
+    invalid_moves: int
+    acceptance_ratio: float
+
+# Generate TypeScript types:
+# npm install -g openapi-typescript
+# openapi-typescript http://localhost:8000/openapi.json -o frontend/src/types/api.ts
+```
+
+## Development Workflow
+
+### Local Development Setup
+
+1. **Backend (Terminal 1):**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload --port 8000
+   ```
+
+2. **Frontend (Terminal 2):**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev  # Vite dev server on http://localhost:5173
+   ```
+
+3. **Vite Proxy Configuration:**
+   ```typescript
+   // frontend/vite.config.ts
+   export default defineConfig({
+     server: {
+       proxy: {
+         '/api': {
+           target: 'http://localhost:8000',
+           changeOrigin: true
+         }
+       }
+     }
+   })
+   ```
+
+4. **CORS Configuration:**
+   ```python
+   # backend/app/main.py
+   from fastapi.middleware.cors import CORSMiddleware
+
+   app.add_middleware(
+       CORSMiddleware,
+       allow_origins=[
+           "http://localhost:5173",  # Vite dev server
+           "https://steinbeck.github.io"  # GitHub Pages
+       ],
+       allow_credentials=True,
+       allow_methods=["*"],
+       allow_headers=["*"]
+   )
+   ```
+
+### Build Order (Dependency-Aware)
+
+**Phase 1: Core Backend (No Frontend Changes)**
+1. Project structure setup (create `backend/` directory)
+2. Pydantic models (`SAParams`, `SAResult`, `ProgressEvent`)
+3. `MoleculeService` (RDKit wrapper)
+4. `SAEngine` (Python port of TypeScript version)
+5. Unit tests for core components
+
+**Phase 2: API Layer**
+6. FastAPI app setup (CORS, startup/shutdown)
+7. Job store (in-memory state management)
+8. `SAService` (orchestration + background tasks)
+9. API routes (`POST /optimize`, `GET /stream/{job_id}`)
+10. Integration tests for API
+
+**Phase 3: Frontend Integration**
+11. API client service (`services/api-client.ts`)
+12. SSE client service (`services/sse-client.ts`)
+13. Modify `app.ts` to use API client instead of Web Worker
+14. Modify `chart.ts` to consume SSE events
+15. Modify `molecule-renderer.ts` to display SVG from backend
+
+**Phase 4: Multi-Component Target Function**
+16. `TargetFunctionService` (plugin registry)
+17. Register Wiener Index component
+18. Add additional components (logP, MW, etc.)
+19. Update frontend to configure component weights
+
+**Phase 5: Polish & Deploy**
+20. Error handling (invalid formulas, job not found, etc.)
+21. Loading states and progress indicators
+22. Backend deployment (Render, Railway, Fly.io)
+23. Update frontend to point to production backend URL
+
+## Scaling Considerations
+
+| Scale | Architecture | Notes |
+|-------|--------------|-------|
+| **0-10 concurrent users** | Single FastAPI server + in-memory job store | Current design sufficient |
+| **10-100 concurrent users** | Add Redis for job store + multiple FastAPI workers | Replace `Dict[str, JobState]` with Redis |
+| **100+ concurrent users** | Celery for background tasks + Redis + load balancer | Replace `BackgroundTasks` with Celery |
+
+### First Bottleneck: In-Memory Job Store
+
+**What breaks:** Multiple FastAPI workers don't share memory; job started on worker 1 can't be streamed from worker 2
+
+**Fix:** Replace in-memory `Dict` with Redis
+```python
+# backend/app/state/job_store.py (Redis version)
+import redis.asyncio as redis
+import json
+
+class JobStore:
+    def __init__(self):
+        self.redis = redis.from_url("redis://localhost")
+
+    async def create_job(self, job_id: str, params: SAParams):
+        await self.redis.set(f"job:{job_id}", json.dumps(params.dict()))
+
+    async def push_progress(self, job_id: str, event: dict):
+        await self.redis.lpush(f"progress:{job_id}", json.dumps(event))
+
+    async def stream_progress(self, job_id: str):
+        while True:
+            event_json = await self.redis.brpop(f"progress:{job_id}", timeout=1)
+            if event_json:
+                yield json.loads(event_json[1])
+```
+
+### Second Bottleneck: Background Tasks in HTTP Process
+
+**What breaks:** Long-running SA jobs block FastAPI workers (limited concurrency)
+
+**Fix:** Offload to Celery workers
+```python
+# backend/app/tasks.py (Celery)
+from celery import Celery
+
+celery_app = Celery('webfaulon', broker='redis://localhost')
+
+@celery_app.task
+def run_optimization(job_id: str, params: dict):
+    sa_service.run_optimization(job_id, SAParams(**params))
+
+# backend/app/api/sa.py
+@router.post("/optimize")
+async def optimize(params: SAParams):
+    job_id = generate_job_id()
+    run_optimization.delay(job_id, params.dict())
+    return {"job_id": job_id}
+```
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Blocking RDKit Operations in Async Handlers
+
+**What people do:** Call synchronous RDKit functions directly in `async def` route handlers
+
+**Why it's wrong:** Blocks the event loop, prevents other requests from being processed, reduces concurrency
+
+**Do this instead:**
+```python
+# ❌ BAD: Blocks event loop
+@router.get("/molecule/{smiles}")
+async def get_molecule(smiles: str):
+    mol = Chem.MolFromSmiles(smiles)  # Synchronous RDKit call
+    svg = molecule_service.generate_svg(mol)  # Synchronous
+    return {"svg": svg}
+
+# ✅ GOOD: Run in thread pool
+from asyncio import to_thread
+
+@router.get("/molecule/{smiles}")
+async def get_molecule(smiles: str):
+    mol = await to_thread(Chem.MolFromSmiles, smiles)
+    svg = await to_thread(molecule_service.generate_svg, mol)
+    return {"svg": svg}
+
+# ✅ BETTER: For SA engine, run entire step() loop in background task
+background_tasks.add_task(sa_service.run_optimization, job_id, params)
+```
+
+### Anti-Pattern 2: Returning Full Molecule History in API Response
+
+**What people do:** Include entire SA history (`history: SAStepResult[]`) in `/stream/{job_id}` or `/status/{job_id}` response
+
+**Why it's wrong:**
+- JSON payload grows linearly with steps (500 steps/cycle × 4 cycles = 2000 objects)
+- Each object includes MOL block or SVG (kilobytes per step)
+- SSE streams send duplicate data (step 100 includes steps 1-100)
+
+**Do this instead:**
+```python
+# ❌ BAD: Send full history on every progress event
+{
+  "step": 100,
+  "history": [
+    {"step": 1, "energy": 50, "molBlock": "..."},
+    {"step": 2, "energy": 49, "molBlock": "..."},
+    ...
+    {"step": 100, "energy": 30, "molBlock": "..."}
+  ]
+}
+
+# ✅ GOOD: Send only current step data
+{
+  "step": 100,
+  "currentEnergy": 30,
+  "bestEnergy": 25,
+  "bestSvg": "...",  # Only best molecule, not all
+  "temperature": 8.5
+}
+
+# ✅ Client aggregates history locally
+const history = [];
+eventSource.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  history.push({step: data.step, energy: data.bestEnergy});
+  updateChart(history);
+};
+```
+
+### Anti-Pattern 3: Not Closing SSE Streams
+
+**What people do:** Forget to send completion event or close EventSource on client
+
+**Why it's wrong:**
+- Server-side generator runs forever, holding resources
+- Client keeps connection open, counts against HTTP/1.1 limit (6 per domain)
+- Memory leak (progress queue grows indefinitely)
+
+**Do this instead:**
+```python
+# ✅ Server: Always send completion event
+async def event_generator():
+    try:
+        while True:
+            event = await queue.get()
+            yield {"data": json.dumps(event)}
+            if event["type"] in ("complete", "error"):
+                break  # Exit generator
+    except asyncio.CancelledError:
+        pass  # Client disconnected
+
+# ✅ Client: Close on completion
+eventSource.addEventListener('complete', () => {
+  eventSource.close();
+});
+eventSource.addEventListener('error', () => {
+  eventSource.close();
+});
+```
+
+### Anti-Pattern 4: Using `*` for CORS `allow_origins` with `allow_credentials=True`
+
+**What people do:**
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True  # ⚠️ Browser rejects this!
+)
+```
+
+**Why it's wrong:** Browsers reject wildcard origins when credentials are enabled (security violation)
+
+**Do this instead:**
+```python
+# ✅ Explicit origins list
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "https://steinbeck.github.io"
+    ],
+    allow_credentials=True
+)
+
+# ✅ Or disable credentials if not needed
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False
+)
+```
 
 ## Sources
 
-**Web Workers Architecture:**
-- [Using Web Workers - MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Using_web_workers)
-- [8 Web-Worker Patterns That Make Browser Apps Multicore](https://medium.com/@connect.hashblock/8-web-worker-patterns-that-make-browser-apps-multicore-e3f22e9f6f82)
-- [Web Workers: Parallel Processing in the Browser](https://medium.com/@artemkhrenov/web-workers-parallel-processing-in-the-browser-e4c89e6cad77)
+### FastAPI + SSE Streaming
+- [Implementing Server-Sent Events (SSE) with FastAPI](https://mahdijafaridev.medium.com/implementing-server-sent-events-sse-with-fastapi-real-time-updates-made-simple-6492f8bfc154)
+- [How to use Server-Sent Events with FastAPI and React](https://www.softgrade.org/sse-with-fastapi-react-langgraph/)
+- [FastAPI + SSE for LLM Tokens: Smooth Streaming without WebSockets](https://medium.com/@hadiyolworld007/fastapi-sse-for-llm-tokens-smooth-streaming-without-websockets-001ead4b5e53)
+- [Streaming Response In FastAPI](https://medium.com/@ab.hassanein/streaming-responses-in-fastapi-d6a3397a4b7b)
+- [Custom Response - HTML, Stream, File, others - FastAPI](https://fastapi.tiangolo.com/advanced/custom-response/)
 
-**WASM & Web Workers:**
-- [Using WebAssembly with Web Workers - SitePen](https://www.sitepen.com/blog/using-webassembly-with-web-workers)
-- [3W for In-Browser AI: WebLLM + WASM + WebWorkers](https://blog.mozilla.ai/3w-for-in-browser-ai-webllm-wasm-webworkers/)
-- [Worker Communication – WebR](https://docs.r-wasm.org/webr/latest/communication.html)
+### Python RDKit
+- [Getting Started with the RDKit in Python — The RDKit 2025.09.5 documentation](https://www.rdkit.org/docs/GettingStartedInPython.html)
+- [RDKit Cookbook — The RDKit 2025.09.5 documentation](https://www.rdkit.org/docs/Cookbook.html)
+- [rdkit.Chem.Draw package — The RDKit 2025.09.5 documentation](https://www.rdkit.org/docs/source/rdkit.Chem.Draw.html)
+- [rdkit.Chem.GraphDescriptors module — The RDKit 2025.09.4 documentation](https://www.rdkit.org/docs/source/rdkit.Chem.GraphDescriptors.html)
+- [Revisiting a Classic Cheminformatics Paper: The Wiener Index](https://bertiewooster.github.io/2023/03/10/Revisiting-a-Classic-Cheminformatics-Paper-The-Wiener-Index.html)
 
-**Real-time Visualization:**
-- [Real-Time Dashboard Performance: WebGL vs Canvas Rendering](https://dev3lop.com/real-time-dashboard-performance-webgl-vs-canvas-rendering-benchmarks/)
-- [SVG vs. Canvas vs. WebGL for Data Visualization](https://dev3lop.com/svg-vs-canvas-vs-webgl-rendering-choice-for-data-visualization/)
-- [Chart.js Performance Documentation](https://www.chartjs.org/docs/latest/general/performance.html)
+### FastAPI Architecture & Patterns
+- [Mastering Dependency Injection in FastAPI](https://medium.com/@azizmarzouki/mastering-dependency-injection-in-fastapi-clean-scalable-and-testable-apis-5f78099c3362)
+- [How to Use Dependency Injection in FastAPI](https://oneuptime.com/blog/post/2026-02-02-fastapi-dependency-injection/view)
+- [FastAPI Complete Guide: Build High-Performance Python APIs in 2026](https://devtoolbox.dedyn.io/blog/fastapi-complete-guide)
+- [Combining FastAPI Dependency Injection with Service and Repository Layers](https://blog.dotcs.me/posts/fastapi-dependency-injection-x-layers)
+- [The Service Layer Pattern - Marc Puig - Notes](https://mpuig.github.io/Notes/fastapi_basics/04.service_layer_pattern/)
 
-**Cheminformatics:**
-- [RDKit.js GitHub Repository](https://github.com/rdkit/rdkit-js)
-- [3Dmol.js: Molecular Visualization with WebGL](https://academic.oup.com/bioinformatics/article/31/8/1322/213186)
+### Monorepo Structure
+- [How do you typically structure your project if it includes both frontend and fastapi?](https://github.com/fastapi/fastapi/discussions/4344)
+- [Embedding a React Frontend Inside a FastAPI Python Package (in a Monorepo)](https://medium.com/@asafshakarzy/embedding-a-react-frontend-inside-a-fastapi-python-package-in-a-monorepo-c00f99e90471)
+- [Generating API clients in monorepos with FastAPI & Next.js](https://www.vintasoftware.com/blog/nextjs-fastapi-monorepo)
+- [A vertical monorepo architecture for FastAPI client-server codebases](https://sqr-075.lsst.io/)
 
-**Performance Patterns:**
-- [When browsers throttle requestAnimationFrame](https://motion.dev/magazine/when-browsers-throttle-requestanimationframe)
-- [Message Batching Patterns](https://medium.com/@pilovm/achieve-more-reactivity-with-web-workers-and-queues-dac461ec5f8e)
-- [State Management in 2026](https://medium.com/@orami98/modern-state-management-in-vanilla-javascript-2026-patterns-and-beyond-ce00425f7ac5)
+### CORS & Development Setup
+- [CORS (Cross-Origin Resource Sharing) - FastAPI](https://fastapi.tiangolo.com/tutorial/cors/)
+- [FastAPI: Configuring CORS for Python's ASGI Framework](https://www.stackhawk.com/blog/configuring-cors-in-fastapi/)
+- [Setup Proxy in React Vite for CORs issues](https://medium.com/@aparna1002v/setup-proxy-in-react-vite-for-cors-issues-167c6a1eb569)
+- [Blocked by CORS in FastAPI? Here's How to Fix It](https://davidmuraya.com/blog/fastapi-cors-configuration/)
 
 ---
-*Architecture research for: WebFaulon - Browser-based Cheminformatics SA Visualization*
-*Researched: 2026-02-14*
+*Architecture research for: FastAPI + Python RDKit Backend Integration*
+*Researched: 2026-02-15*
+*Confidence: HIGH (verified with official docs + recent 2026 sources)*

@@ -1,405 +1,248 @@
 # Project Research Summary
 
-**Project:** WebFaulon
-**Domain:** Browser-based Cheminformatics with Algorithm Visualization
-**Researched:** 2026-02-14
-**Confidence:** MEDIUM-HIGH
+**Project:** WebFaulon v2.0
+**Domain:** Python Backend Migration for Molecular SA Optimization (FastAPI + RDKit + SSE)
+**Researched:** 2026-02-15
+**Confidence:** HIGH
 
 ## Executive Summary
 
-WebFaulon is an educational web application combining two specialized domains: chemistry education tools and algorithm visualization. The research reveals a clear consensus on architecture: Web Workers for computation isolation, WASM-based cheminformatics (RDKit.js), and real-time charting with performance optimization. This is a domain where both chemistry correctness and computational performance are equally critical.
+WebFaulon v2.0 migrates from a browser-only architecture (Web Workers + RDKit.js WASM) to a client-server model with a FastAPI Python backend, native RDKit for cheminformatics, and Server-Sent Events for real-time progress streaming. This is a well-understood architectural transition. FastAPI 0.129.0 is the industry standard for async Python APIs in 2026, Python RDKit 2025.09.5 provides the authoritative cheminformatics toolkit, and SSE via sse-starlette 3.2.0 is the correct pattern for one-way streaming (replacing Web Worker postMessage). The frontend becomes a thin visualization layer: Alpine.js for UI state, Chart.js for charting, and SVG rendering from the backend replaces RDKit.js WASM canvas rendering. Every technology in this stack is mature, well-documented, and battle-tested.
 
-The recommended approach follows established patterns from both domains: client-side computation for educational transparency, component isolation between UI and algorithm, and progressive enhancement starting with core correctness before visualization polish. The primary technical risk is balancing chemical validity constraints (valence rules, graph connectivity) with simulated annealing algorithm implementation complexity. The secondary risk is WASM integration in Web Workers, which has well-documented solutions but requires careful initialization handling.
+The primary value of this migration is enabling multi-component target functions beyond Wiener Index. Python RDKit exposes 200+ molecular descriptors (logP, MW, TPSA) and opens the door to future spectroscopic scoring (NMR prediction). The pluggable component architecture -- a weighted-sum registry where each component implements `score(mol) -> float` -- fits naturally into FastAPI's dependency injection system. This architectural capability is the reason to migrate; without it, the browser-only version is sufficient.
 
-Success requires implementing comprehensive validation at each SA step (connectivity + valence checking) BEFORE optimizing for performance or visualization. Research shows most failures stem from invalid molecular graph operations, not algorithm convergence issues. The architecture naturally mitigates UI performance risks through Web Worker isolation, but chemical correctness must be validated through extensive unit testing from day one.
+The key risks are: (1) CPU-bound SA iterations blocking the async event loop -- mitigated by running SA in BackgroundTasks or ProcessPoolExecutor from day one, (2) RDKit sanitization failures after Faulon displacement -- mitigated by mandatory `Chem.SanitizeMol()` after every bond modification with try/catch rejection, and (3) SSE resource leaks from unclosed streams or client disconnects -- mitigated by bounded queues, adaptive reporting intervals, and disconnect detection. All three have well-documented solutions. The migration path is low-risk and the research is conclusive: proceed to implementation.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Modern browser-based scientific computation in 2026 centers on Vite + TypeScript + WASM + Web Workers. The stack achieves instant dev experience (esbuild transpilation) while supporting computationally intensive cheminformatics through RDKit.js.
+**Backend (NEW for v2.0):**
+- **FastAPI 0.129.0+**: Async Python API framework with native SSE support via StreamingResponse. Requires Python 3.10+ (dropped 3.9 in 0.129.0). 5-50x faster than Flask for async workloads. Automatic OpenAPI docs at `/docs`.
+- **Python RDKit 2025.09.5+**: Full cheminformatics toolkit. `Chem.GetDistanceMatrix()` for Wiener Index, `rdMolDraw2D.MolDraw2DSVG` for SVG rendering, `Chem.RWMol` for bond manipulation. Install via conda (recommended) or pip.
+- **sse-starlette 3.2.0**: Production-ready SSE following W3C spec. `EventSourceResponse` for streaming progress. Released Jan 2026. Native FastAPI integration.
+- **Pydantic v2**: Rust-based validation, required by FastAPI 0.128.0+ (v1 removed). Runtime type checking for request/response schemas.
+- **Uvicorn 0.34.0+**: ASGI server. Single process for dev, Gunicorn + Uvicorn workers for production.
+- **Poetry**: Dependency management with lockfiles. De facto Python standard in 2026.
+- **pytest + pytest-asyncio**: Testing framework. `AsyncClient` for SSE endpoint tests.
 
-**Core technologies:**
-- **Vite 6.x + TypeScript 5.x**: Industry standard for browser apps in 2026, zero-config dev with production-ready optimizations, native WASM plugin support
-- **RDKit.js 2025.3.4-1.0.0**: Only production-ready cheminformatics library for browsers, handles SMILES parsing and molecular graph operations via WASM
-- **Apache ECharts 5.x**: Canvas rendering handles 10K+ points <100ms, superior to Chart.js for scientific streaming data visualization
-- **Comlink 4.x**: Eliminates Web Worker postMessage boilerplate, TypeScript-native with proxy-based RPC (1.1KB)
-- **Alpine.js 3.x (or vanilla JS)**: Lightweight (7.1KB) for parameter controls without SPA overhead, educational transparency (students read source)
+**Frontend (RETAINED from v1.0, modified role):**
+- **Vite 6.x + TypeScript 5.x**: Build tool and type-safe development. Unchanged.
+- **Alpine.js 3.x**: UI state management. Modified to use fetch + EventSource instead of Comlink.
+- **Chart.js 4.x**: SA progress charting. Now consumes SSE events instead of worker callbacks.
+- **EventSource API**: Native browser SSE client. No library needed.
 
-**Critical dependencies:**
-- `vite-plugin-wasm` for WASM module loading
-- `vite-plugin-comlink` for seamless worker integration
-- Vitest for testing (note: WASM testing has known issues, use browser mode for RDKit.js tests)
+**Removed from frontend:** RDKit.js WASM, Comlink, Web Workers, sa-worker.ts, MolGraph.ts, SAEngine.ts.
 
-**Alternatives rejected:** Chart.js (canvas rendering degrades >1000 points), React/Preact (unnecessary overhead for parameter forms), CDN imports for RDKit.js (CORS and path resolution issues).
+**Critical version constraints:**
+- Python >= 3.10 (FastAPI requirement)
+- Pydantic v2 only (v1 removed from FastAPI 0.128.0)
+- RDKit via conda for binary dependency management
 
 ### Expected Features
 
-Research across algorithm visualization (VisuAlgo) and chemistry education (MolView, WebMO) reveals clear expectations. Users need both algorithm control (play/pause/step-by-step) and chemistry-specific visualization (2D structures, formula input).
+**Must have (table stakes for migration parity):**
+- REST API for SA configuration (POST /api/sa/configure with formula, params, weights)
+- SSE streaming of SA progress (maintains live chart UX from v1.x)
+- Start/pause/reset via API (POST /api/sa/{session_id}/{action})
+- Backend molecule validation (RDKit validates formulas and structures)
+- 2D SVG molecule rendering (backend replaces RDKit.js WASM rendering)
+- Session state persistence (in-memory dict with 30-min TTL)
+- CORS configuration (GitHub Pages frontend calls separate backend origin)
+- Health check endpoint (GET /api/health)
+- Error handling with proper HTTP codes (400/404/409/500)
 
-**Must have (table stakes):**
-- Molecular formula input with validation — standard chemistry tool starting point
-- 2D structure visualization of current best — core educational requirement
-- Play/Pause/Reset controls — algorithm visualization standard
-- Real-time algorithm state (temperature, step, energy) — users need "what is algorithm doing now"
-- Real-time optimization chart (Wiener Index vs step) — makes optimization visible not abstract
-- SA parameter controls (kT, cooling, max steps) — students learn by adjusting parameters
-- Preset example molecules — reduces barrier to entry (3-5 curated examples)
-- Mobile responsive design — 2026 standard, students use personal devices
+**Should have (migration value-adds):**
+- Multi-component target function framework (pluggable components with weighted sum -- the core reason to migrate)
+- Backend displacement on native RDKit RWMol (higher fidelity than adjacency matrix)
+- Canonical SMILES via RDKit (authoritative, replaces custom DFS algorithm)
 
-**Should have (competitive differentiators):**
-- Step-by-step mode (manual advancement) — high educational value, aids comprehension
-- Detailed acceptance log — shows probabilistic decisions, demystifies SA
-- Configurable cooling schedules — lets students experiment with schedule impact
-- Download results (structure image + optimization CSV) — enables use in assignments
-- Visual molecule transitions — animate bond changes showing displacement operation
-
-**Defer to v2+:**
-- Temperature reheat (advanced SA technique, not in Faulon 1996 paper)
-- Comparative runs (side-by-side parameter comparison, high development cost)
-- Annotated molecular features (connects Wiener Index to topology, complex to implement well)
+**Defer to v2.1+:**
+- Adjustable component weights API (after framework validated)
+- Component-wise score streaming in SSE events
+- RDKit descriptor calculation API (expose 200+ descriptors)
+- Graceful cancellation with cancel endpoint
+- Concurrent session support via async task status
 
 **Anti-features (explicitly avoid):**
-- User accounts/login (adds complexity for one-off educational demo)
-- 3D visualization (Wiener Index is about 2D graph topology, not 3D geometry)
-- Database of molecules (scope creep, provide 5-10 curated presets instead)
-- Backend computation (client-side for educational transparency)
-- Multi-objective optimization (Faulon focuses on Wiener Index)
+- Celery/Redis task queue (overengineering for educational demo, use BackgroundTasks)
+- WebSocket communication (SSE is correct for one-way streaming)
+- Database persistence for sessions (in-memory dict sufficient, sessions are ephemeral)
+- Authentication/authorization (students in classroom, not customers)
+- GraphQL (REST with clear endpoints is simpler and more educational)
+- Docker containerization at launch (deploy directly to Railway/Heroku/Fly.io)
 
 ### Architecture Approach
 
-The architecture follows a clear three-layer pattern: UI Layer (main thread), Communication Layer (message batching + rAF throttling), and Computation Layer (Web Worker). This separation prevents UI blocking during expensive SA iterations while maintaining responsive controls.
+Three-layer backend with clear separation: API Router (FastAPI endpoints) -> Service Layer (orchestration + dependency injection) -> Core Layer (SAEngine + MoleculeService + TargetFunctionService). The frontend communicates via REST (POST to start, GET for status) + SSE (EventSource for real-time progress). SA runs in BackgroundTasks, emitting progress to asyncio.Queue, which the SSE endpoint drains as an async generator. This is the standard FastAPI pattern for long-running computation with streaming results.
 
-**Major components:**
-1. **Web Worker (Computation Layer)** — Runs SA algorithm loop, RDKit.js WASM, molecular graph operations (MolGraph class with adjacency matrix, valence checking, connectivity via BFS, Wiener Index calculation)
-2. **Main Thread (UI Layer)** — Chart rendering (ECharts), UI controls, status display, molecular structure display (from worker results)
-3. **Communication Infrastructure** — WorkerManager abstracts worker lifecycle, MessageBatcher + requestAnimationFrame throttling (batch worker messages to 60fps updates), transferable objects for large adjacency matrices (zero-copy transfer)
-4. **Molecular Graph Engine (MolGraph.ts)** — Core data structure with adjacency matrix operations, valence validation, connectivity checking (BFS), Wiener Index via BFS from each node (O(n²) for sparse graphs)
-5. **SA Algorithm Controller** — Manages SA state machine (IDLE → INITIALIZING → RUNNING → PAUSED → STOPPED → ERROR), temperature scheduling, acceptance criteria
+**Major backend components:**
+1. **FastAPI Router** -- HTTP endpoints for SA optimization (POST /optimize, GET /stream/{job_id}, GET /status/{job_id})
+2. **SAService** -- Orchestrates SA execution in background tasks, manages job lifecycle and progress emission
+3. **MoleculeService** -- RDKit wrapper: create molecules from formula, apply Faulon displacement, compute Wiener Index, generate SVG, convert to SMILES
+4. **TargetFunctionService** -- Plugin registry for scoring components. Each component is `Callable[[Mol], float]`. Evaluation is weighted sum.
+5. **SAEngine** -- Python port of TypeScript SAEngine. Stateful class with `step()` method. Uses MoleculeService for all RDKit operations.
+6. **Job Store** -- In-memory Dict + asyncio.Queue per job. Tracks state, routes progress events to SSE endpoint.
 
-**Critical patterns identified:**
-- **Async WASM initialization in worker** — RDKit.js must initialize INSIDE worker thread (cannot pass WASM across postMessage due to structured clone limitations)
-- **Message batching + rAF throttling** — Worker may generate 1000s messages/sec, batch and throttle to 60fps for UI updates
-- **BFS-based Wiener Index** — O(n × (n+m)) = O(n²) for sparse molecular graphs, NOT Floyd-Warshall O(n³)
-- **Connectivity validation after every move** — BFS from arbitrary node to verify graph remains connected (reject moves creating disconnected fragments)
-- **Chart.js decimation** — Enable LTTB algorithm, limit visible points to 500-1000, disable animations for performance
+**Key architectural patterns:**
+- SSE for unidirectional progress streaming (EventSourceResponse + async generator)
+- Dependency injection via FastAPI `Depends()` for testable services
+- BackgroundTasks for non-blocking SA execution (not the event loop)
+- Pydantic models for type-safe request/response + OpenAPI schema generation
+- Separate POST (create job) from GET (stream progress) to prevent EventSource reconnect duplication
+
+**Monorepo structure:** `frontend/` (Vite) and `backend/` (FastAPI) as sibling directories. Vite proxy to backend in dev mode. No shared code -- use OpenAPI schema as source of truth for types.
 
 ### Critical Pitfalls
 
-Research reveals that chemical correctness failures dominate algorithm convergence issues. Most pitfalls stem from invalid graph operations or WASM integration mistakes, not SA parameter tuning.
+Top 10 pitfalls identified, mapped to prevention phases:
 
-1. **Incorrect bond order redistribution** — Faulon's displacement equations (eqs 7-11) must preserve valences; implementation errors produce chemically impossible molecules with invalid valences (carbon with 5 bonds). **Prevention:** Comprehensive unit tests for every move type, verify detailed balance (if A→B accepted, B→A must be possible), validate connectivity + valence + total bond order after each move.
+1. **Missing RDKit sanitization after bond changes** -- RDKit does NOT auto-validate after `SetBondType()`. Must call `Chem.SanitizeMol()` after every displacement. Failure produces silently invalid molecules. **Prevention:** Try/catch sanitization, reject move on failure. Unit tests assert SMILES correctness after displacement. [Phase 1]
 
-2. **Graph connectivity loss after bond moves** — Removing single bond connecting fragments creates disconnected structures. **Prevention:** ALWAYS BFS connectivity check after every SA move, reject moves creating fragments, O(n+m) is fast enough.
+2. **CPU-bound SA blocking async event loop** -- SA loop (RDKit operations, Wiener computation) is CPU-bound. Running in `async def` blocks the entire server. **Prevention:** Run SA in BackgroundTasks or ProcessPoolExecutor from day one. Verify `/health` responds during optimization. [Phase 1]
 
-3. **WASM initialization and memory in workers** — RDKit.js WASM cannot be imported ES6-style or passed via postMessage (DataCloneError). **Prevention:** Initialize RDKit.js INSIDE each worker via importScripts(), copy .wasm to public assets, pass serializable representations (adjacency lists, SMILES) between threads.
+3. **SSE backpressure causing memory exhaustion** -- SA generates updates faster than client consumes. Unbounded queue grows until OOM. **Prevention:** Adaptive reporting interval (max 10 events/sec), bounded asyncio.Queue (maxsize=10), `asyncio.sleep(0)` to yield control. [Phase 2]
 
-4. **Premature convergence from wrong cooling schedule** — Faulon describes 33 schedules (f0-f32); inappropriate choice causes local minimum trapping or excessive computation. **Prevention:** Implement multiple schedules, monitor acceptance ratio (should start ~80%, end ~5%), adaptive cooling if ratio drops too fast.
+4. **Client disconnect not canceling SA computation** -- Browser tab closes, SSE drops, but SA loop continues for minutes wasting CPU. **Prevention:** Check `request.is_disconnected()` every 100 steps. Clean up on CancelledError. [Phase 2]
 
-5. **Wiener Index performance bottleneck** — Naive Floyd-Warshall O(n³) freezes browser for >30 atoms. **Prevention:** Use BFS from each node O(n²) for sparse molecular graphs, cache when move rejected, profile separately (should be <10ms per call).
+5. **CORS middleware ordering breaks error responses** -- CORSMiddleware added after other middleware means exceptions bypass CORS headers. Browser shows generic CORS error instead of actual 422/500. **Prevention:** Add CORSMiddleware FIRST, before all other middleware. Use Vite proxy in dev to avoid CORS entirely. [Phase 1]
 
-6. **Invalid initial structure generation** — Converting formula (C6H12) to valid graph non-trivial; random bond assignments violate valences. **Prevention:** Deterministic/stochastic generators, validate connectivity + valences before SA starts, consider SMILES input alternative.
+6. **RDKit Mol memory leaks in long SA runs** -- Storing Mol objects in history creates unbounded memory growth. C++ objects have complex lifetimes not immediately freed by Python GC. **Prevention:** Store SMILES strings in history, not Mol objects. Explicit `del rw_mol` after displacement. Periodic `gc.collect()`. [Phase 1]
 
-7. **Implicit vs explicit hydrogen inconsistency** — Mixing representations causes valence errors and incorrect Wiener Index. **Prevention:** Choose implicit hydrogens (recommended), document clearly, exclude H from Wiener Index, validate bond_order_sum + implicit_H_count = standard_valence.
+7. **Incorrect BondType enum mapping** -- RDKit BondType enum (UNSPECIFIED=0, SINGLE=1, DOUBLE=2, TRIPLE=3, AROMATIC=12) does not match Faulon integer bond orders. **Prevention:** Explicit mapping function `faulon_order_to_rdkit_bondtype()`. Test all bond types. [Phase 1]
 
-8. **Aromaticity and kekulization failures** — Aromatic systems require specific bond orders; mixing Kekule and aromatic forms causes RDKit.js errors. **Prevention:** Use Kekule structures (explicit double bonds) for constitutional isomer generation, let RDKit.js detect aromaticity AFTER generation.
+8. **EventSource auto-reconnect duplicating jobs** -- If SSE endpoint both starts optimization AND streams, reconnect triggers duplicate jobs. **Prevention:** Separate POST (create job, return job_id) from GET (stream progress). EventSource only on GET endpoint. [Phase 2]
+
+9. **Frontend assumes synchronous responses** -- Web Worker pattern (`await worker.run()`) does not translate to HTTP. Single `fetch()` for entire optimization times out. **Prevention:** Build `SAClient` adapter class that mimics worker API: POST to start, EventSource for progress, Promise resolves on completion event. [Phase 3]
+
+10. **Plugin architecture prevents pickling for ProcessPoolExecutor** -- Class-based plugins with closures/DB connections can't pickle. **Prevention:** Registry pattern with top-level functions + serializable config objects. Or use ThreadPoolExecutor (acceptable for demo). [Phase 4]
 
 ## Implications for Roadmap
 
-Based on research consensus, implementation must follow dependency order: molecular graph foundation → SA algorithm correctness → worker integration → visualization → polish. Attempting visualization before validating chemical correctness leads to hard-to-debug failures.
-
 ### Suggested Phase Structure
 
-#### Phase 1: Molecular Graph Foundation & SA Core
-**Rationale:** Chemistry correctness is the foundation. SA algorithm depends on valid graph operations. All downstream work (visualization, UI) assumes chemically valid structures. Research shows most failures stem from invalid graph operations, not algorithm issues.
+#### Phase 1: Backend Core + RDKit Foundation
+**Rationale:** Independent of frontend. Establishes API contract and validates RDKit integration. All downstream phases depend on this. Backend-first allows testing with curl before any frontend work.
+**Delivers:** FastAPI app skeleton, CORS config, health check, Pydantic models (SAParams, SAResult, ProgressEvent), MoleculeService (RDKit wrapper), Python SAEngine (port of TypeScript), unit tests (pytest + real RDKit Mol objects).
+**Features addressed:** Backend molecule validation, canonical SMILES, backend displacement on RDKit RWMol, health check, error handling, CORS.
+**Pitfalls prevented:** #1 (sanitization), #2 (event loop blocking), #5 (CORS ordering), #6 (memory leaks), #7 (BondType mapping).
+**Research needed:** None. RDKit API well-documented. FastAPI patterns standard.
 
-**Delivers:**
-- MolGraph.ts class (adjacency matrix, valence checking, connectivity via BFS)
-- Wiener Index calculation (BFS-based, O(n²) for sparse graphs)
-- Initial structure generation from molecular formula (with validation)
-- SA algorithm core (temperature scheduling, acceptance criteria, state machine)
-- Bond order displacement function (Faulon equations 7-11)
-- Comprehensive unit test suite (100+ move validations, edge cases)
+#### Phase 2: API Layer + SSE Streaming
+**Rationale:** Validates streaming independently before frontend integration. Job store + SSE is the critical integration point between computation and visualization.
+**Delivers:** Job Store (in-memory + asyncio.Queue), SAService (orchestration, BackgroundTasks, progress emission), REST endpoints (POST /optimize, GET /stream/{job_id}, GET /status/{job_id}), SSE endpoint with EventSourceResponse, API tests with AsyncClient.
+**Features addressed:** REST API for SA configuration, SSE streaming, start/pause/reset, session state persistence, current state query.
+**Pitfalls prevented:** #3 (SSE backpressure), #4 (disconnect detection), #8 (reconnect duplication).
+**Research needed:** None. sse-starlette patterns clear from official docs and 2026 examples.
 
-**Addresses from FEATURES.md:**
-- Foundation for molecular formula input
-- Foundation for SA parameter controls
-- Core algorithm required for all visualization
+#### Phase 3: Frontend Integration
+**Rationale:** Lowest risk phase -- EventSource is a native browser API. Delivers end-to-end v2.0 by wiring frontend to backend. Removes all Web Worker / RDKit.js / Comlink code.
+**Delivers:** API client service (fetch wrapper), SSE client service (EventSource wrapper with SAClient adapter), modified app.ts (replace worker with API), modified chart.ts (SSE events), modified molecule-renderer.ts (display SVG from backend). Removal of sa-worker.ts, MolGraph.ts, SAEngine.ts, RDKit.js, Comlink.
+**Features addressed:** All table-stakes migration parity features (live chart, instant controls, molecule rendering, progress updates).
+**Pitfalls prevented:** #9 (frontend sync assumption via SAClient adapter).
+**Research needed:** None. EventSource is native browser API.
 
-**Avoids from PITFALLS.md:**
-- Pitfall 1 (invalid bond redistribution) — extensive test suite
-- Pitfall 2 (connectivity loss) — BFS check after every move
-- Pitfall 5 (Wiener Index bottleneck) — BFS approach from start
-- Pitfall 6 (invalid initial structure) — validated generation
-- Pitfall 7 (hydrogen handling) — implicit H chosen at architecture level
+#### Phase 4: Multi-Component Target Function
+**Rationale:** Core migration value. Not required for MVP parity but is the architectural reason for migrating. Can defer if time-constrained -- Wiener-only demonstrates SA correctly.
+**Delivers:** TargetFunctionService (plugin registry), registered components (Wiener, logP, MW), updated SAParams for component weights, frontend UI for weight configuration.
+**Features addressed:** Multi-component framework, adjustable weights, component-wise scoring.
+**Pitfalls prevented:** #10 (plugin pickling via registry pattern).
+**Research needed:** Minimal. Simple registry pattern. May want to validate weight normalization UX.
 
-**Research needed:** LOW — Graph algorithms and SA theory well-documented. Standard patterns.
-
-**Verification:** Test suite passes, 1000-step SA runs produce no disconnected structures, Wiener calculation <5ms for 50-atom molecules.
-
----
-
-#### Phase 2: Web Worker Integration & WASM
-**Rationale:** Isolate computation from UI to prevent blocking. Must happen before UI work to establish communication patterns. WASM initialization in workers is well-documented but must be done carefully.
-
-**Delivers:**
-- Web Worker setup (worker entry point, message handling)
-- RDKit.js WASM initialization in worker (async pattern, error handling)
-- WorkerManager abstraction (lifecycle management, clean API for UI)
-- MessageBatcher + rAF throttling (batch to 60fps)
-- Worker state machine implementation
-- Transferable object patterns for large adjacency matrices
-
-**Addresses from FEATURES.md:**
-- Non-blocking UI during SA execution
-- Foundation for real-time state display
-- Play/pause/reset controls infrastructure
-
-**Avoids from PITFALLS.md:**
-- Pitfall 3 (WASM initialization) — proper async init pattern in worker
-- Anti-pattern 1 (running SA in main thread) — worker isolation
-- Anti-pattern 2 (message flooding) — batching + throttling
-- Anti-pattern 5 (blocking worker) — interruptible loop with control messages
-
-**Research needed:** LOW — Web Worker + WASM integration has official MDN docs and established patterns. RDKit.js worker examples exist.
-
-**Verification:** WASM loads in worker, error handling tested, 10K-step SA remains responsive to stop/pause commands.
-
----
-
-#### Phase 3: Basic UI & Real-time Visualization
-**Rationale:** With computation stable and isolated, add user-facing features. Chart performance critical (10K+ points), requires ECharts configuration and optimization from start.
-
-**Delivers:**
-- Minimal UI shell (HTML/CSS with controls)
-- Parameter controls (kT initial, cooling rate, max steps with sliders)
-- Play/pause/reset buttons
-- Real-time algorithm state display (step, temperature, current/best Wiener Index)
-- ECharts integration (with decimation, no animations, rAF throttling)
-- Real-time optimization chart (Wiener Index vs step)
-- Preset examples (3-5 molecules with pre-configured parameters)
-- Mobile responsive layout
-
-**Addresses from FEATURES.md:**
-- Molecular formula text input
-- Formula validation
-- SA parameter controls (P1 table stakes)
-- Play/pause/reset controls (P1 table stakes)
-- Real-time optimization chart (P1 table stakes)
-- Real-time state display (P1 table stakes)
-- Preset examples (P1 table stakes)
-- Mobile responsive (P1 table stakes)
-
-**Avoids from PITFALLS.md:**
-- Anti-pattern 4 (no decimation) — ECharts decimation configured from start
-- UX pitfall (no progress indication) — real-time state updates
-- UX pitfall (no cancel) — pause/stop controls
-
-**Research needed:** LOW — ECharts configuration well-documented. Alpine.js patterns standard.
-
-**Verification:** Smooth 60fps chart updates with 10K points, mobile responsive on tablets/phones, parameters affect SA behavior correctly.
-
----
-
-#### Phase 4: 2D Structure Visualization
-**Rationale:** Depends on RDKit.js integration (Phase 2) and core SA (Phase 1). Chemistry visualization completes the educational loop but isn't required for algorithm validation.
-
-**Delivers:**
-- 2D molecular structure rendering (RDKit.js native rendering)
-- Display of current best structure (updates as SA improves)
-- Conversion from internal graph to RDKit.js molecule
-- Implicit hydrogen handling in rendering
-- Kekulization error handling
-
-**Addresses from FEATURES.md:**
-- 2D structure visualization (P1 table stakes)
-- Visual completion of optimization loop
-
-**Avoids from PITFALLS.md:**
-- Pitfall 7 (hydrogen handling) — implicit H set correctly for RDKit.js
-- Pitfall 8 (kekulization failures) — error handling for aromatic structures
-
-**Research needed:** MEDIUM — RDKit.js rendering API needs exploration. Canvas integration patterns.
-
-**Verification:** Generated structures render correctly, aromatic test molecules (benzene, pyridine) convert successfully.
-
----
-
-#### Phase 5: Enhanced Interaction & Export
-**Rationale:** Polish features after core functionality validated. High educational value (step-by-step, acceptance log) but not critical path.
-
-**Delivers:**
-- Step-by-step mode (manual advancement one iteration at a time)
-- Detailed acceptance log (proposed move, energy delta, acceptance decision)
-- Download results (structure as PNG/SVG, optimization data as CSV)
-- Configurable cooling schedules (exponential, linear, logarithmic)
-- Optimization metrics dashboard (acceptance rate, diversity metrics)
-
-**Addresses from FEATURES.md:**
-- Step-by-step mode (P2 feature)
-- Detailed acceptance log (P2 feature)
-- Download results (P2 feature)
-- Configurable cooling schedules (P2 feature)
-
-**Research needed:** LOW — Standard patterns for file export and UI enhancements.
-
-**Verification:** Step-by-step mode aids comprehension (user testing), export formats work in assignments.
-
----
+#### Phase 5: Deployment + Polish
+**Rationale:** After functionality validated, deploy backend for classroom use. Error handling, loading states, and production configuration.
+**Delivers:** Comprehensive error handling (invalid formula, job not found, disconnect recovery), loading states and spinners, backend deployment (Render/Railway + Docker + conda-forge base image), frontend API_URL configuration for production, updated README with v2.0 architecture.
+**Features addressed:** Deployment readiness, production CORS, graceful degradation.
+**Pitfalls prevented:** Security mistakes (CORS lockdown, rate limiting, formula validation).
+**Research needed:** Minimal. Platform-specific deployment docs (Render/Railway) may have gotchas.
 
 ### Phase Ordering Rationale
 
-**Dependency-driven sequencing:**
-- MolGraph must exist before SA algorithm (Phase 1 internal dependency)
-- SA algorithm must work before worker integration (Phase 2 depends on Phase 1 correctness)
-- Worker must work before UI (Phase 3 depends on Phase 2 communication layer)
-- 2D rendering depends on RDKit.js in worker (Phase 4 depends on Phase 2 WASM setup)
+- **Backend before frontend:** Backend can be tested independently with curl/httpx/AsyncClient. Frontend integration is the lowest-risk phase (EventSource is trivial). This ordering catches RDKit and async issues before they compound with frontend state management.
+- **SSE before frontend:** Validating streaming independently reveals backpressure and disconnect issues without the noise of UI debugging. The BACKEND-INTEGRATION-SUMMARY confirms this ordering.
+- **Multi-component after MVP:** Wiener-only demonstrates SA correctly. The component framework adds value but is not required for migration parity. Deferring it de-risks the critical path.
+- **Deployment last:** Classroom use requires a deployed backend. But deployment complexity (conda in Docker, CORS for production domain) is isolated from functional correctness.
 
-**Risk mitigation through early validation:**
-- Phase 1 addresses 5 of 8 critical pitfalls through comprehensive testing BEFORE integration
-- Phase 2 addresses WASM integration complexity with clear error handling
-- Phase 3 addresses performance (ECharts decimation) from initial configuration
-- Phase 4 handles chemistry visualization edge cases (aromaticity, kekulization)
-
-**Educational value delivery:**
-- Phase 1: Core algorithm works (can log SA iterations to console for validation)
-- Phase 2: Non-blocking execution (can see algorithm run without freezing browser)
-- Phase 3: Visual feedback (students see optimization happening in real-time)
-- Phase 4: Chemistry connection (students see molecular structures, not just numbers)
-- Phase 5: Deep understanding (step-through and logs demystify SA decisions)
-
-**Parallel work opportunities:**
-- Phase 1 MolGraph can develop parallel to SA algorithm skeleton
-- Phase 3 UI shell can prototype parallel to Phase 2 worker integration
-- Phase 4 RDKit.js rendering research can happen during Phase 3 implementation
+**Critical path:** Phase 1 -> Phase 2 -> Phase 3 -> Phase 5
+**Optional branch:** Phase 3 -> Phase 4 (can run before or after Phase 5)
 
 ### Research Flags
 
-**Phases needing deeper research during planning:**
-- **Phase 4 (2D Structure Visualization):** RDKit.js rendering API has limited documentation, canvas integration patterns need exploration, kekulization edge cases require investigation
-- **Phase 5 (Export functionality):** File format preferences (PNG vs SVG, CSV vs JSON) should survey chemistry instructors
+**Phases with standard patterns (skip `/gsd:research-phase`):**
+- **Phase 1:** RDKit Python API is well-documented. FastAPI project setup is standard. SAEngine port is mechanical translation.
+- **Phase 2:** sse-starlette has clear examples. Job store with asyncio.Queue is a common pattern. Background tasks documented in FastAPI official docs.
+- **Phase 3:** EventSource is a native browser API. Fetch wrapper is trivial. SVG display is just setting `innerHTML`.
+- **Phase 5:** Railway/Render/Fly.io all have FastAPI deployment guides. Docker + conda-forge is documented.
 
-**Phases with standard patterns (skip research-phase):**
-- **Phase 1 (Molecular Graph & SA):** Graph algorithms textbook material, SA theory well-documented, numerous implementations exist
-- **Phase 2 (Web Workers):** Official MDN documentation comprehensive, Comlink patterns established, WASM initialization examples plentiful
-- **Phase 3 (UI & Charts):** ECharts documentation extensive, Alpine.js patterns standard, mobile responsive design established
-- **Phase 5 (Enhanced Interaction):** Step-by-step UI patterns common in algorithm visualizations, file export browser APIs well-documented
+**Phases that may benefit from validation during implementation (not full research):**
+- **Phase 1:** Faulon displacement on RDKit RWMol has no existing implementation found. Validate against v1.x adjacency matrix test suite once ported.
+- **Phase 4:** Multi-component scoring weight normalization UX. Simple registry pattern but the API design for weights (must sum to 1.0? auto-normalize?) needs a decision.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | **HIGH** | Vite, RDKit.js, ECharts verified via npm metadata and official docs. Comlink from Google Chrome Labs. Active maintenance confirmed. |
-| Features | **MEDIUM-HIGH** | Algorithm visualization patterns (VisuAlgo) and chemistry education tools (MolView, WebMO) show consistent expectations. SA-specific feature precedent from TSP demos. |
-| Architecture | **HIGH** | Web Worker + WASM patterns extensively documented (MDN). Performance optimization patterns (rAF throttling, batching) established. Component boundaries clear. |
-| Pitfalls | **MEDIUM** | WASM/Worker issues well-documented (MDN, GitHub issues). SA theory high confidence (academic consensus). Faulon-specific implementation LOW confidence (1996 paper not directly accessed, inferred from related work). |
+| Stack | **HIGH** | FastAPI 0.129.0, RDKit 2025.09.5, sse-starlette 3.2.0 all verified via official docs, PyPI, and 2026 production guides. Version constraints confirmed. |
+| Features | **HIGH** | Feature parity requirements clear from v1.x. Multi-component framework is simple plugin registry. Anti-features well-justified (YAGNI for educational demo). |
+| Architecture | **HIGH** | Three-layer FastAPI pattern is industry standard. SSE + BackgroundTasks + asyncio.Queue documented in multiple 2026 sources. Monorepo structure follows FastAPI community conventions. |
+| Pitfalls | **HIGH** | All 10 pitfalls sourced from official RDKit/FastAPI docs, GitHub issues, and 2024-2026 community discussions. Mitigations verified. Recovery costs assessed. |
 
-**Overall confidence:** MEDIUM-HIGH
-
-**High confidence areas:**
-- Web Worker + WASM integration (official documentation, established patterns)
-- Performance optimization (rAF throttling, decimation, BFS vs Floyd-Warshall)
-- Technology choices (npm package verification, version compatibility)
-
-**Medium confidence areas:**
-- Feature prioritization (inferred from similar domains, needs user testing validation)
-- Cooling schedule specifics (Faulon paper describes 33 schedules, transfer to JavaScript context may need tuning)
-- Educational value of specific features (step-by-step, acceptance log assumed valuable from VisuAlgo research)
-
-**Low confidence areas:**
-- Faulon displacement equations (eqs 7-11) implementation details (1996 paper not directly accessed)
-- Optimal cooling schedule parameters for browser context (may differ from 1996 Fortran implementation)
+**Overall confidence: HIGH** -- This is a well-trodden migration path with mature technologies and no novel patterns.
 
 ### Gaps to Address
 
-**During Phase 1 planning:**
-- **Faulon displacement equations:** Access original 1996 paper for equations 7-11 details, or reverse-engineer from reference implementations
-- **Initial structure generation algorithm:** Choose between deterministic (MAYGEN-style) vs stochastic approach, benchmark validity rate
+Gaps are minor and can be resolved during implementation, not through additional research.
 
-**During Phase 3 planning:**
-- **Chart decimation threshold:** Determine optimal sample count (500 vs 1000 vs 2000) through performance testing on target devices
-- **Mobile breakpoints:** Test preset parameters on actual classroom tablets/Chromebooks to validate performance
-
-**During Phase 4 planning:**
-- **RDKit.js rendering canvas size:** Determine optimal resolution for clarity vs performance
-- **Kekulization failure UX:** Decide error handling strategy (silent fallback vs user notification)
-
-**During Phase 5 planning:**
-- **Export formats:** Survey chemistry instructors for PNG vs SVG preference, CSV vs JSON for data
-- **Step-by-step performance:** Determine if manual stepping needs different optimization than continuous run
-
-**Validation recommendations from research:**
-- Conduct user testing with chemistry students to validate P1/P2 priority splits
-- Benchmark cooling schedules against known test cases (all C6H12 isomers generation)
-- Test visual molecule transitions with target users to assess if complexity justified by educational value
+- **Faulon displacement on RDKit RWMol:** No existing Python implementation found. Port from TypeScript adjacency matrix approach and validate against v1.x test suite. If RWMol bond manipulation proves unreliable for Faulon's 4-atom displacement pattern, fall back to adjacency matrix with RDKit only for rendering/descriptors.
+- **Optimal SSE event batching rate:** Research suggests 10 events/sec but actual latency depends on network conditions and SA step rate. Needs performance testing with realistic SA runs (500 steps/cycle x 4 cycles).
+- **Conda in deployment:** Render/Railway support Python but conda adds complexity to Docker images. Use `continuumio/miniconda3` base image. If problematic, try `pip install rdkit` (pre-built wheels exist for Linux).
+- **Offline usage regression:** v1.x works offline (static site). v2.0 requires backend connection. Document this clearly. Not a blocker but a UX change to acknowledge.
 
 ## Sources
 
 ### Primary (HIGH confidence)
 
-**Official Documentation:**
-- MDN Web Docs — Web Workers API, WASM integration, structured clone algorithm
-- Vite Official Documentation — Build configuration, WASM plugins
-- RDKit.js GitHub Repository — WASM usage patterns, API reference
-- npm package metadata — Version verification (@rdkit/rdkit 2025.3.4-1.0.0, libraries.io)
-- Apache ECharts Official Docs — Performance optimization, decimation configuration
+**FastAPI + SSE:**
+- [FastAPI Release Notes](https://fastapi.tiangolo.com/release-notes/) -- Version 0.129.0, Python 3.10+ requirement
+- [FastAPI CORS](https://fastapi.tiangolo.com/tutorial/cors/) -- CORSMiddleware configuration
+- [FastAPI Async Tests](https://fastapi.tiangolo.com/advanced/async-tests/) -- AsyncClient testing patterns
+- [sse-starlette PyPI](https://pypi.org/project/sse-starlette/) -- Version 3.2.0, SSE implementation
+- [FastAPI Concurrency](https://fastapi.tiangolo.com/async/) -- Async/await patterns
 
-**Academic/Authoritative:**
-- Wikipedia: Simulated Annealing — Theory and cooling schedules
-- Wikipedia: Wiener Index — Definition and graph theory foundation
-- ACM/Springer — Algorithm visualization educational research
-- PMC (PubMed Central) — Chemistry education pedagogy
+**Python RDKit:**
+- [RDKit Getting Started](https://www.rdkit.org/docs/GettingStartedInPython.html) -- Python API
+- [RDKit Cookbook](https://www.rdkit.org/docs/Cookbook.html) -- Wiener Index, molecular manipulation
+- [RDKit Draw Module](https://www.rdkit.org/docs/source/rdkit.Chem.Draw.html) -- SVG rendering
+- [RDKit Installation](https://www.rdkit.org/docs/Install.html) -- Conda vs pip
 
-### Secondary (MEDIUM confidence)
+**Pydantic:**
+- [Pydantic v2 Docs](https://docs.pydantic.dev/latest/) -- Rust-based validation, migration from v1
 
-**Technical Articles (2026):**
-- Luzmo, Embeddable — JavaScript chart library comparisons (2026)
-- LogRocket, johnnyreilly — Comlink integration patterns
-- Medium, Better Stack — WASM best practices and performance
-- Dev3lop — WebGL vs Canvas rendering benchmarks
+### Secondary (MEDIUM-HIGH confidence)
 
-**Community Resources:**
-- GitHub issues (Vitest #4283, #6118) — WASM testing known issues
-- VisuAlgo.net — Algorithm visualization patterns (research-backed)
-- MolView, WebMO — Chemistry education tool feature analysis
-- TSP SA demos (vgarciasc, Inspiaaa) — SA visualization precedent
+**Architecture and Patterns:**
+- [FastAPI Best Practices Production 2026](https://fastlaunchapi.dev/blog/fastapi-best-practices-production-2026)
+- [Modern FastAPI Architecture Patterns](https://medium.com/algomart/modern-fastapi-architecture-patterns-for-scalable-production-systems-41a87b165a8b)
+- [The Complete FastAPI x pytest Guide (Feb 2026)](https://blog.greeden.me/en/2026/01/06/the-complete-fastapi-x-pytest-guide/)
+- [Mastering Dependency Injection in FastAPI](https://medium.com/@azizmarzouki/mastering-dependency-injection-in-fastapi-clean-scalable-and-testable-apis-5f78099c3362)
 
-**Chemistry Domain:**
-- Wiley Online Library — Molecular graphics roadmap, computational chemistry education
-- ACS Journal of Chemical Education — Parameter tuning simulations (ICP-MS TuneSim)
-- NFDI4Chem, ChemAxon — Cheminformatics access and tool patterns
+**SSE Streaming:**
+- [Implementing SSE with FastAPI](https://mahdijafaridev.medium.com/implementing-server-sent-events-sse-with-fastapi-real-time-updates-made-simple-6492f8bfc154)
+- [Stop Burning CPU on Dead FastAPI Streams](https://jasoncameron.dev/posts/fastapi-cancel-on-disconnect)
+- [Using Server-Sent Events -- MDN](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
 
-### Tertiary (LOW confidence, needs validation)
+**RDKit Pitfalls:**
+- [RDKit Sanitization and File Parsing (2025)](https://greglandrum.github.io/rdkit-blog/posts/2025-06-27-sanitization-and-file-parsing.html)
+- [Memory Leakage with Molecule Objects -- GitHub #3239](https://github.com/rdkit/rdkit/issues/3239)
+- [Explicit Valence Error -- GitHub Discussion #8181](https://github.com/rdkit/rdkit/discussions/8181)
 
-**Faulon Algorithm Details:**
-- Faulon Research Site (jfaulon.com) — Chemical structure generation background (1996 paper not directly accessed)
-- Related isomer generators (MAYGEN, Surge) — Inferred patterns from similar approaches
-- NextMove, Depth-First blog — Hydrogen handling and aromaticity (expert opinions, not original research)
+### Tertiary (MEDIUM confidence, validate during implementation)
 
-**Inferred from Analogous Domains:**
-- TSP SA cooling schedules — Transferred to molecular optimization context (may need tuning)
-- Chart.js vs ECharts performance claims — Vendor comparisons, needs independent validation
-- Alpine.js educational value — Assumed from progressive enhancement philosophy
+- Multi-component scoring patterns inferred from scikit-learn plugin architecture
+- SSE latency vs Web Worker postMessage not directly benchmarked in sources
+- NMR prediction integration complexity (future, limited integration examples)
+- Faulon displacement on RDKit RWMol (no existing implementation, needs validation)
 
 ---
-
-*Research completed: 2026-02-14*
+*Research completed: 2026-02-15*
 *Ready for roadmap: YES*
-
-## Next Steps for Orchestrator
-
-This synthesis is complete and ready for roadmap creation. The suggested five-phase structure provides clear dependency ordering and addresses all critical pitfalls from research.
-
-**Recommended approach for roadmap:**
-1. Adopt suggested phase structure as starting point
-2. Skip `/gsd:research-phase` for Phases 1, 2, 3, 5 (standard patterns, well-documented)
-3. Consider `/gsd:research-phase` for Phase 4 (RDKit.js rendering API exploration)
-4. Flag Phase 1 for comprehensive test suite requirement (chemical correctness critical)
-5. Flag Phase 2 for WASM initialization error handling focus
-
-**Key research insights to carry forward:**
-- Chemical correctness before optimization before polish
-- Validate graph operations (connectivity + valence) after EVERY SA move
-- Initialize RDKit.js INSIDE workers, never pass WASM via postMessage
-- Use BFS for Wiener Index (O(n²)), not Floyd-Warshall (O(n³))
-- ECharts with decimation configured from start, not Chart.js
