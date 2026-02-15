@@ -10,25 +10,25 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Position
 
 Phase: 2 of 3 (Browser Integration & Controls)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-02-15 — Completed plan 02-01 (Step-by-step SA execution API)
+Last activity: 2026-02-15 — Completed plan 02-02 (Web Worker infrastructure with Comlink)
 
-Progress: [███░░░░░░░] 33% (Phase 2: 1/3 plans complete)
+Progress: [███████░░░] 67% (Phase 2: 2/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: 6.2 min
-- Total execution time: 0.52 hours
+- Total plans completed: 6
+- Average duration: 5.5 min
+- Total execution time: 0.55 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01-molecular-graph-sa-core | 4 | 28 min | 7.0 min |
-| 02-browser-integration-controls | 1 | 3 min | 3.0 min |
+| 02-browser-integration-controls | 2 | 6 min | 3.0 min |
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -37,6 +37,7 @@ Progress: [███░░░░░░░] 33% (Phase 2: 1/3 plans complete)
 | 01-molecular-graph-sa-core | 03 | 8 min | 3 | 4 |
 | 01-molecular-graph-sa-core | 04 | 10 min | 3 | 4 |
 | 02-browser-integration-controls | 01 | 3 min | 2 | 3 |
+| 02-browser-integration-controls | 02 | 3 min | 3 | 10 |
 
 ## Accumulated Context
 
@@ -60,6 +61,9 @@ Recent decisions affecting current work:
 - [Phase 02-01]: Refactored run() to delegate to init()+step()+getResult() for single code path
 - [Phase 02-01]: getState() returns snapshot (not live reference) for safe cross-thread sharing
 - [Phase 02-01]: Error throwing on invalid method call sequences (step before init, getResult before complete)
+- [Phase 02-02]: Singleton SAWorker instance exposed via Comlink (simpler lifecycle than class exposure)
+- [Phase 02-02]: Moved SAParams and SAResult to shared types.ts for cross-module type safety
+- [Phase 02-02]: Periodic yield every 100 steps ensures pause/resume messages can be processed
 
 ### Pending Todos
 
@@ -78,5 +82,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-15 (phase 2 in progress)
-Stopped at: Completed 02-01-PLAN.md — Step-by-step SA execution API. Ready for plan 02-02 (Web Worker integration).
+Stopped at: Completed 02-02-PLAN.md — Web Worker infrastructure with Comlink. Ready for plan 02-03 (Progress UI with Alpine.js).
 Resume file: None
