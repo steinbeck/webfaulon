@@ -2,70 +2,34 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-14)
+See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time — making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** All phases complete — milestone 1 fully delivered
+**Current focus:** v2.0 — Python Backend Architecture
 
 ## Current Position
 
-Phase: 3.1 (inserted) — Add README and GitHub Pages deployment
-Plan: 02 of 02
-Status: Complete
-Last activity: 2026-02-15 — Phase 3.1 complete (README + GitHub Pages deployment)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-15 — Milestone v2.0 started
 
-Progress: [██████████] 100% (12/12 plans across 4 phases)
-
-## Performance Metrics
-
-**Velocity:**
-- Total plans completed: 12
-- Average duration: ~13 min
-- Total execution time: ~2.5 hours
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01-molecular-graph-sa-core | 4 | 28 min | 7.0 min |
-| 02-browser-integration-controls | 3 | 96 min | 32.0 min |
-| 03-visualization-ux | 3 | ~100 min | ~33 min |
-| 03.1-add-readme-and-github-pages-deployment | 2/2 | 3 min | 1.5 min |
-
-| Phase | Plan | Duration | Tasks | Files |
-|-------|------|----------|-------|-------|
-| 01-molecular-graph-sa-core | 01 | 4 min | 3 | 8 |
-| 01-molecular-graph-sa-core | 02 | 4 min | 3 | 4 |
-| 01-molecular-graph-sa-core | 03 | 8 min | 3 | 4 |
-| 01-molecular-graph-sa-core | 04 | 10 min | 3 | 4 |
-| 02-browser-integration-controls | 01 | 3 min | 2 | 3 |
-| 02-browser-integration-controls | 02 | 3 min | 3 | 10 |
-| 02-browser-integration-controls | 03 | 90 min | 4 | 10 |
-| 03-visualization-ux | 01 | 5 min | 2 | 6 |
-| 03-visualization-ux | 02 | 2 min | 2 | 4 |
-| 03-visualization-ux | 03 | ~90 min | 3 | 10 |
-| 03.1-add-readme-and-github-pages-deployment | 01 | 1 min | 2 | 3 |
-| 03.1-add-readme-and-github-pages-deployment | 02 | 2 min | 1 | 1 |
+Progress: [░░░░░░░░░░] 0%
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+Carried forward from v1.0:
 
-- [Phase 03-03]: Replaced toSMILES() with toMolBlock() — MOL blocks trivially correct from adjacency matrix
-- [Phase 03-03]: RDKit.js set_new_coords() required before draw_to_canvas() (zero-coord MOL blocks crash WASM)
-- [Phase 03-03]: Pipeline sends MOL block from worker; main thread derives canonical SMILES via RDKit
-- [Phase 03-03]: Added C10H16 (monoterpene isomers) to presets per user request
-- [Phase 03.1-01]: Use unpkg CDN for RDKit.js in production (node_modules not available in deployed build)
-- [Phase 03.1-01]: Pin RDKit version to 2025.3.4-1.0.0 on unpkg to match package.json
-- [Phase 03.1-01]: Use official GitHub Pages actions (not deprecated gh-pages branch approach)
-- [Phase 03.1-01]: Set base path to /webfaulon/ for GitHub Pages repository subdirectory deployment
+- MOL block pipeline proved more reliable than custom SMILES generation
+- RDKit.js set_new_coords() required before draw_to_canvas() (zero-coord crash)
+- unpkg CDN for RDKit.js in production (node_modules unavailable in deployed build)
 
 ### Roadmap Evolution
 
-- Phase 3.1 inserted after Phase 3: Add README and GitHub Pages deployment (URGENT)
+None yet — roadmap pending.
 
 ### Pending Todos
 
@@ -73,10 +37,10 @@ None.
 
 ### Blockers/Concerns
 
-None — all blockers resolved.
+None.
 
 ## Session Continuity
 
-Last session: 2026-02-15 (All phases complete)
-Stopped at: Phase 3.1 complete — all phases delivered, 12/12 plans executed
+Last session: 2026-02-15 (Milestone v2.0 initialization)
+Stopped at: Defining requirements for v2.0
 Resume file: None
