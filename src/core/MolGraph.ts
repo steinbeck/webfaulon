@@ -171,10 +171,12 @@ export class MolGraph {
       return '';
     }
 
+    const n = this.atoms.length;
+
     // Build adjacency list from bond matrix
-    const adjacency: number[][] = Array(this.atoms.length).fill(0).map(() => []);
-    for (let i = 0; i < this.atoms.length; i++) {
-      for (let j = i + 1; j < this.atoms.length; j++) {
+    const adjacency: number[][] = Array(n).fill(0).map(() => []);
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
         if (this.bonds[i]![j]! > 0) {
           adjacency[i]!.push(j);
           adjacency[j]!.push(i);
@@ -182,67 +184,80 @@ export class MolGraph {
       }
     }
 
-    // Track visited atoms and ring closures
-    const visited = new Array(this.atoms.length).fill(false);
-    const ringClosures: Map<string, number> = new Map(); // key: "i-j" where i < j
-    let nextRingNumber = 1;
+    // Two-pass approach: SMILES ring closure digits must appear at BOTH
+    // endpoints. Since atom B is output before we discover the back-edge
+    // at atom A, we pre-discover all ring closures first.
 
-    const dfs = (atomIdx: number, parentIdx: number = -1): string => {
-      visited[atomIdx] = true;
+    // Pass 1: DFS to discover ring closures (back edges)
+    const visited1 = new Array(n).fill(false);
+    let nextRingNum = 1;
+    const ringEdges = new Set<string>();
+    // atom → [{ringNum, bondOrder}] for digits to emit at each atom
+    const ringDigitsAt = new Map<number, Array<{ ringNum: number; bondOrder: number }>>();
+
+    const prePassDFS = (atomIdx: number, parentIdx: number): void => {
+      visited1[atomIdx] = true;
+      for (const neighbor of adjacency[atomIdx]!) {
+        if (neighbor === parentIdx) continue;
+        if (visited1[neighbor]) {
+          const edgeKey = atomIdx < neighbor
+            ? `${atomIdx}-${neighbor}`
+            : `${neighbor}-${atomIdx}`;
+          if (!ringEdges.has(edgeKey)) {
+            ringEdges.add(edgeKey);
+            const ringNum = nextRingNum++;
+            const bondOrder = this.bonds[atomIdx]![neighbor]!;
+            // Add digit at BOTH endpoints
+            if (!ringDigitsAt.has(atomIdx)) ringDigitsAt.set(atomIdx, []);
+            ringDigitsAt.get(atomIdx)!.push({ ringNum, bondOrder });
+            if (!ringDigitsAt.has(neighbor)) ringDigitsAt.set(neighbor, []);
+            ringDigitsAt.get(neighbor)!.push({ ringNum, bondOrder });
+          }
+        } else {
+          prePassDFS(neighbor, atomIdx);
+        }
+      }
+    };
+
+    prePassDFS(0, -1);
+
+    // Pass 2: DFS to generate SMILES string
+    const visited2 = new Array(n).fill(false);
+
+    const mainDFS = (atomIdx: number, parentIdx: number): string => {
+      visited2[atomIdx] = true;
       let smiles = this.atoms[atomIdx]!.element;
 
-      const neighbors = adjacency[atomIdx]!.filter(n => n !== parentIdx);
-
-      // First pass: handle ring closures (back edges to already-visited atoms)
-      for (const neighborIdx of neighbors) {
-        if (visited[neighborIdx]) {
-          const edgeKey = atomIdx < neighborIdx
-            ? `${atomIdx}-${neighborIdx}`
-            : `${neighborIdx}-${atomIdx}`;
-
-          if (!ringClosures.has(edgeKey)) {
-            // First time encountering this ring closure - open it
-            const ringNum = nextRingNumber++;
-            ringClosures.set(edgeKey, ringNum);
-            smiles += ringNum.toString();
-          }
-          // Note: if the edge is already in ringClosures, it means we're at the
-          // closing end, but we already added the digit when opening, so skip
+      // Emit ring closure digits for this atom
+      const digits = ringDigitsAt.get(atomIdx);
+      if (digits) {
+        for (const { ringNum } of digits) {
+          smiles += ringNum.toString();
         }
       }
 
-      // Second pass: traverse unvisited neighbors (tree edges)
+      // Traverse unvisited neighbors (tree edges only)
       let firstBranch = true;
-      for (const neighborIdx of neighbors) {
-        // Check if visited NOW (not at the start) because recursive calls might have visited it
-        if (visited[neighborIdx]) {
-          continue;
-        }
+      for (const neighbor of adjacency[atomIdx]!) {
+        if (neighbor === parentIdx || visited2[neighbor]) continue;
 
-        const bondOrder = this.bonds[atomIdx]![neighborIdx]!;
-
-        // Add bond symbol for double/triple bonds
+        const bondOrder = this.bonds[atomIdx]![neighbor]!;
         let bondSymbol = '';
-        if (bondOrder === 2) {
-          bondSymbol = '=';
-        } else if (bondOrder === 3) {
-          bondSymbol = '#';
-        }
+        if (bondOrder === 2) bondSymbol = '=';
+        else if (bondOrder === 3) bondSymbol = '#';
 
         if (firstBranch) {
-          // First branch - continue main chain
-          smiles += bondSymbol + dfs(neighborIdx, atomIdx);
+          smiles += bondSymbol + mainDFS(neighbor, atomIdx);
           firstBranch = false;
         } else {
-          // Additional branches - wrap in parentheses
-          smiles += '(' + bondSymbol + dfs(neighborIdx, atomIdx) + ')';
+          smiles += '(' + bondSymbol + mainDFS(neighbor, atomIdx) + ')';
         }
       }
 
       return smiles;
     };
 
-    return dfs(0);
+    return mainDFS(0, -1);
   }
 
   // Factory methods for testing
