@@ -10,18 +10,18 @@ See: .planning/PROJECT.md (updated 2026-02-14)
 ## Current Position
 
 Phase: 3 of 3 (Visualization & UX)
-Plan: 2 of 3 in current phase
+Plan: 1 of 3 in current phase
 Status: In Progress
-Last activity: 2026-02-15 — Completed plan 03-02 (Chart & Molecule Renderer Modules)
+Last activity: 2026-02-15 — Completed plan 03-01 (SMILES Generation & Progress Propagation)
 
-Progress: [███████░░░] 67% (Phase 3: 2/3 plans complete)
+Progress: [███░░░░░░░] 33% (Phase 3: 1/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 8
-- Average duration: 16.3 min
-- Total execution time: 2.17 hours
+- Average duration: 15.5 min
+- Total execution time: 2.07 hours
 
 **By Phase:**
 
@@ -29,7 +29,7 @@ Progress: [███████░░░] 67% (Phase 3: 2/3 plans complete)
 |-------|-------|-------|----------|
 | 01-molecular-graph-sa-core | 4 | 28 min | 7.0 min |
 | 02-browser-integration-controls | 3 | 96 min | 32.0 min |
-| 03-visualization-ux | 1 | 2 min | 2.0 min |
+| 03-visualization-ux | 1 | 5 min | 5.0 min |
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
@@ -40,7 +40,7 @@ Progress: [███████░░░] 67% (Phase 3: 2/3 plans complete)
 | 02-browser-integration-controls | 01 | 3 min | 2 | 3 |
 | 02-browser-integration-controls | 02 | 3 min | 3 | 10 |
 | 02-browser-integration-controls | 03 | 90 min | 4 | 10 |
-| 03-visualization-ux | 02 | 2 min | 2 | 4 |
+| 03-visualization-ux | 01 | 5 min | 2 | 6 |
 
 ## Accumulated Context
 
@@ -72,13 +72,9 @@ Recent decisions affecting current work:
 - [Phase 02-03]: Alpine.js for reactive UI (lightweight, suitable for classroom projection)
 - [Phase 02-03]: RDKit.js loaded via CDN script tag (library exposes global, not ES module)
 - [Phase 02-03]: Module-level worker references outside Alpine reactive scope (prevents Proxy-of-Proxy conflicts with Comlink)
-- [Phase 03-02]: Chart.js tree-shaken imports (not auto bundle) for optimal bundle size
-- [Phase 03-02]: Module-level chart instance storage outside Alpine reactive scope prevents Proxy conflicts
-- [Phase 03-02]: Decimation plugin with min-max algorithm preserves SA peaks/valleys
-- [Phase 03-02]: Animation disabled and parsing:false for real-time performance
-- [Phase 03-02]: aspectRatio 2.5 for wide step timeline visualization
-- [Phase 03-02]: Redundant SMILES re-render prevention via _lastRenderedSMILES tracking
-- [Phase 03-02]: WASM memory cleanup guaranteed via try/finally with mol.delete()
+- [Phase 03-01]: DFS-based SMILES generation produces valid (non-canonical) SMILES suitable for RDKit parsing
+- [Phase 03-01]: Ring closures detected via back edges in DFS traversal
+- [Phase 03-01]: toSMILES() called in getState() every reportInterval steps (negligible cost vs Wiener Index computation)
 
 ### Pending Todos
 
@@ -97,5 +93,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-15 (Phase 3 in progress)
-Stopped at: Completed 03-02-PLAN.md — Chart & Molecule Renderer Modules. Phase 3: 2/3 plans complete. Note: Plan 03-01 may be incomplete (uncommitted toSMILES implementation, failing test).
+Stopped at: Completed 03-01-PLAN.md — SMILES Generation & Progress Propagation. Phase 3: 1/3 plans complete.
 Resume file: None
