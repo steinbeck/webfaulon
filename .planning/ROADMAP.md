@@ -64,11 +64,12 @@ Plans:
   3. Algorithm state (current step, temperature, current/best Wiener Index) visible throughout execution
   4. UI is readable when projected (clean design, good contrast, large fonts)
   5. Application works on tablets and phones (mobile responsive layout for BYOD classrooms)
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 03-01: TBD during planning
-- [ ] 03-02: TBD during planning
+- [ ] 03-01-PLAN.md — SMILES generation for MolGraph + worker bestSMILES propagation (TDD)
+- [ ] 03-02-PLAN.md — Chart.js live chart module + RDKit.js molecule renderer module
+- [ ] 03-03-PLAN.md — UI integration, responsive redesign, and visual verification checkpoint
 
 ## Progress
 
@@ -79,7 +80,7 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Molecular Graph & SA Core | 4/4 | Complete | 2026-02-14 |
 | 2. Browser Integration & Controls | 3/3 | Complete | 2026-02-15 |
-| 3. Visualization & UX | 0/TBD | Not started | - |
+| 3. Visualization & UX | 0/3 | Not started | - |
 
 ---
 
