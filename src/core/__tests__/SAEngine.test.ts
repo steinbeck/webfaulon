@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { SAEngine, type SAParams } from '../SAEngine';
-import type { SAEngineState } from '../types';
 
 describe('SAEngine', () => {
   const defaultParams: SAParams = {

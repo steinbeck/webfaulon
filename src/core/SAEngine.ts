@@ -12,7 +12,7 @@ import { computeWienerIndex } from './wiener';
 import { attemptDisplacement } from './displacement';
 import { SeededRandom } from './random';
 import { computeTemperature } from './cooling';
-import type { OptimizationMode, SAStepResult } from './types';
+import type { OptimizationMode, SAStepResult, SAEngineState } from './types';
 
 /**
  * Parameters for simulated annealing optimization
@@ -74,6 +74,10 @@ export class SAEngine {
   private invalidMoves = 0;
   private history: SAStepResult[] = [];
   private totalSteps = 0;
+  private globalStep = 0;
+  private currentTemperature = 0;
+  private initialized = false;
+  private completed = false;
 
   constructor(params: SAParams) {
     this.params = params;
@@ -81,53 +85,113 @@ export class SAEngine {
   }
 
   /**
-   * Run the full SA optimization to completion
+   * Initialize the SA engine for step-by-step execution
    *
-   * Algorithm (Faulon paper Table 2):
-   * 1. Parse formula and generate initial structure
-   * 2. Compute initial Wiener Index
-   * 3. For each cycle:
-   *    a. Reset temperature to initialTemp
-   *    b. For each step:
-   *       - Attempt displacement
-   *       - Compute energy delta
-   *       - Metropolis acceptance
-   *       - Update current/best graphs
-   *       - Record step result
-   *       - Update temperature
-   * 4. Return results
+   * Sets up initial structure, computes initial energy, and prepares state.
+   * Must be called before step().
    */
-  run(): SAResult {
-    // Step 1: Initialize
+  init(): void {
+    // Generate initial structure
     this.currentGraph = generateInitialStructure(this.params.formula);
     this.currentEnergy = computeWienerIndex(this.currentGraph);
     this.initialEnergy = this.currentEnergy;
     this.bestGraph = this.currentGraph.clone();
     this.bestEnergy = this.currentEnergy;
 
-    // Step 2: Run SA cycles
-    const totalSteps = this.params.stepsPerCycle * this.params.numCycles;
-    let globalStep = 0;
+    // Reset state
+    this.totalSteps = this.params.stepsPerCycle * this.params.numCycles;
+    this.globalStep = 0;
+    this.acceptedMoves = 0;
+    this.rejectedMoves = 0;
+    this.invalidMoves = 0;
+    this.history = [];
+    this.currentTemperature = this.params.initialTemp;
+    this.initialized = true;
+    this.completed = false;
+  }
 
-    for (let cycle = 0; cycle < this.params.numCycles; cycle++) {
-      for (let step = 0; step < this.params.stepsPerCycle; step++) {
-        globalStep++;
-        this.totalSteps = globalStep;
-
-        // Compute current temperature
-        const temperature = computeTemperature(
-          globalStep - 1, // 0-indexed for temperature calculation
-          totalSteps,
-          this.params.initialTemp,
-          this.params.coolingScheduleK
-        );
-
-        // Attempt displacement
-        this.iterate(temperature, globalStep);
-      }
+  /**
+   * Execute a single SA iteration
+   *
+   * Advances the algorithm by one step. Can be called repeatedly with
+   * arbitrary delays between calls (enabling pause/resume).
+   *
+   * @throws Error if init() hasn't been called or execution is already complete
+   */
+  step(): void {
+    if (!this.initialized) {
+      throw new Error('SAEngine.step() called before init()');
     }
 
-    // Step 3: Return results
+    if (this.completed) {
+      throw new Error('SAEngine.step() called after completion');
+    }
+
+    // Increment step counter
+    this.globalStep++;
+
+    // Compute current temperature
+    this.currentTemperature = computeTemperature(
+      this.globalStep - 1, // 0-indexed for temperature calculation
+      this.totalSteps,
+      this.params.initialTemp,
+      this.params.coolingScheduleK
+    );
+
+    // Execute one SA iteration
+    this.iterate(this.currentTemperature, this.globalStep);
+
+    // Check if complete
+    if (this.globalStep === this.totalSteps) {
+      this.completed = true;
+    }
+  }
+
+  /**
+   * Get current execution state
+   *
+   * Returns a snapshot of the current SA execution state.
+   *
+   * @throws Error if init() hasn't been called
+   * @returns Current state including step number, energy values, and completion status
+   */
+  getState(): SAEngineState {
+    if (!this.initialized) {
+      throw new Error('SAEngine.getState() called before init()');
+    }
+
+    const cycle = this.globalStep === 0
+      ? 0
+      : Math.floor((this.globalStep - 1) / this.params.stepsPerCycle) + 1;
+
+    return {
+      step: this.globalStep,
+      totalSteps: this.totalSteps,
+      cycle,
+      currentEnergy: this.currentEnergy,
+      bestEnergy: this.bestEnergy,
+      temperature: this.currentTemperature,
+      acceptedMoves: this.acceptedMoves,
+      rejectedMoves: this.rejectedMoves,
+      invalidMoves: this.invalidMoves,
+      isComplete: this.completed,
+    };
+  }
+
+  /**
+   * Get final optimization result
+   *
+   * Returns the complete SAResult with best/final graphs and statistics.
+   * Can only be called after all steps are complete.
+   *
+   * @throws Error if execution is not complete
+   * @returns Final optimization result
+   */
+  getResult(): SAResult {
+    if (!this.completed) {
+      throw new Error('SAEngine.getResult() called before completion');
+    }
+
     return {
       bestGraph: this.bestGraph,
       bestEnergy: this.bestEnergy,
@@ -141,6 +205,22 @@ export class SAEngine {
       acceptanceRatio: this.acceptedMoves / this.totalSteps,
       history: this.history,
     };
+  }
+
+  /**
+   * Run the full SA optimization to completion
+   *
+   * Convenience method that delegates to init(), step(), and getResult().
+   * Maintains backward compatibility with existing code.
+   *
+   * @returns Complete optimization result
+   */
+  run(): SAResult {
+    this.init();
+    while (!this.completed) {
+      this.step();
+    }
+    return this.getResult();
   }
 
   /**
