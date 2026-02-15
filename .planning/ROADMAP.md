@@ -47,12 +47,12 @@ Plans:
   4. User can start, pause, and reset SA execution at any time
   5. Browser remains responsive during 10,000-step SA execution (Web Worker isolation working)
   6. RDKit.js WASM loads successfully in worker and processes molecular graphs
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: TBD during planning
-- [ ] 02-02: TBD during planning
-- [ ] 02-03: TBD during planning
+- [ ] 02-01-PLAN.md — SAEngine step-by-step execution API refactor (TDD)
+- [ ] 02-02-PLAN.md — Web Worker + Comlink integration and Vite project scaffold
+- [ ] 02-03-PLAN.md — Alpine.js UI controls, formula validation, presets, and RDKit.js WASM
 
 ### Phase 3: Visualization & UX
 **Goal**: Students see optimization happening in real time with clear, classroom-ready visuals
@@ -78,10 +78,10 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Molecular Graph & SA Core | 4/4 | Complete | 2026-02-14 |
-| 2. Browser Integration & Controls | 0/TBD | Not started | - |
+| 2. Browser Integration & Controls | 0/3 | Planned | - |
 | 3. Visualization & UX | 0/TBD | Not started | - |
 
 ---
 
 *Roadmap created: 2026-02-14*
-*Last updated: 2026-02-14 after phase 1 execution complete*
+*Last updated: 2026-02-15 after phase 2 planning complete*
