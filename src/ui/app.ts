@@ -95,11 +95,12 @@ export function appComponent(): AppState {
 
     // Lifecycle
     async init() {
-      // Load RDKit.js WASM
+      // Load RDKit.js WASM via global initRDKitModule (loaded by script tag in index.html)
       try {
-        // @ts-ignore - RDKit module has non-standard exports
-        const initRDKitModule = (await import('@rdkit/rdkit')).default;
-        const RDKit = await initRDKitModule();
+        if (typeof window.initRDKitModule !== 'function') {
+          throw new Error('RDKit script not loaded. Check index.html script tag.');
+        }
+        const RDKit = await window.initRDKitModule();
         this.rdkitReady = true;
 
         // Smoke test: create a molecule from SMILES
