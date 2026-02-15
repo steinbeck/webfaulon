@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SAEngine, type SAParams } from '../SAEngine';
+import type { SAEngineState } from '../types';
 
 describe('SAEngine', () => {
   const defaultParams: SAParams = {
@@ -382,6 +383,177 @@ describe('SAEngine', () => {
 
       expect(result.totalSteps).toBe(100);
       expect(result.history.length).toBe(100);
+    });
+  });
+
+  describe('SAEngine step-by-step execution', () => {
+    const stepParams: SAParams = {
+      formula: 'C6H14',
+      initialTemp: 100,
+      coolingScheduleK: 8,
+      stepsPerCycle: 50,
+      numCycles: 2,
+      optimizationMode: 'MINIMIZE',
+      seed: 42,
+    };
+
+    it('init() sets up initial state', () => {
+      const engine = new SAEngine(stepParams);
+      engine.init();
+      const state = engine.getState();
+
+      expect(state.step).toBe(0);
+      expect(state.isComplete).toBe(false);
+      expect(state.currentEnergy).toBe(state.bestEnergy); // Initial structure computed
+      expect(state.currentEnergy).toBeGreaterThan(0);
+      expect(state.totalSteps).toBe(100); // 50 * 2
+    });
+
+    it('step() advances one iteration', () => {
+      const engine = new SAEngine(stepParams);
+      engine.init();
+      engine.step();
+      const state = engine.getState();
+
+      expect(state.step).toBe(1);
+    });
+
+    it('step() throws if init() not called', () => {
+      const engine = new SAEngine(stepParams);
+
+      expect(() => engine.step()).toThrow();
+    });
+
+    it('multiple steps execute correctly', () => {
+      const engine = new SAEngine(stepParams);
+      engine.init();
+
+      const N = 5;
+      for (let i = 0; i < N; i++) {
+        engine.step();
+      }
+
+      const state = engine.getState();
+      expect(state.step).toBe(N);
+    });
+
+    it('isComplete becomes true after all steps', () => {
+      const params: SAParams = {
+        ...stepParams,
+        stepsPerCycle: 10,
+        numCycles: 1,
+      };
+
+      const engine = new SAEngine(params);
+      engine.init();
+
+      // Execute all 10 steps
+      for (let i = 0; i < 10; i++) {
+        engine.step();
+      }
+
+      const state = engine.getState();
+      expect(state.isComplete).toBe(true);
+      expect(state.step).toBe(10);
+    });
+
+    it('step() throws after completion', () => {
+      const params: SAParams = {
+        ...stepParams,
+        stepsPerCycle: 5,
+        numCycles: 1,
+      };
+
+      const engine = new SAEngine(params);
+      engine.init();
+
+      // Execute all steps
+      for (let i = 0; i < 5; i++) {
+        engine.step();
+      }
+
+      // Try to step again after completion
+      expect(() => engine.step()).toThrow();
+    });
+
+    it('getResult() returns final result after completion', () => {
+      const params: SAParams = {
+        ...stepParams,
+        stepsPerCycle: 10,
+        numCycles: 1,
+      };
+
+      const engine = new SAEngine(params);
+      engine.init();
+
+      for (let i = 0; i < 10; i++) {
+        engine.step();
+      }
+
+      const result = engine.getResult();
+
+      expect(result.bestGraph).toBeDefined();
+      expect(result.bestEnergy).toBeTypeOf('number');
+      expect(result.finalGraph).toBeDefined();
+      expect(result.finalEnergy).toBeTypeOf('number');
+      expect(result.initialEnergy).toBeTypeOf('number');
+      expect(result.totalSteps).toBe(10);
+      expect(result.acceptedMoves).toBeTypeOf('number');
+      expect(result.rejectedMoves).toBeTypeOf('number');
+      expect(result.invalidMoves).toBeTypeOf('number');
+      expect(result.acceptanceRatio).toBeTypeOf('number');
+      expect(result.history).toBeInstanceOf(Array);
+    });
+
+    it('getResult() throws if not complete', () => {
+      const engine = new SAEngine(stepParams);
+      engine.init();
+      engine.step(); // Only 1 step out of 100
+
+      expect(() => engine.getResult()).toThrow();
+    });
+
+    it('step-by-step matches run() for same seed', () => {
+      const params: SAParams = {
+        ...stepParams,
+        stepsPerCycle: 50,
+        numCycles: 2,
+        seed: 12345,
+      };
+
+      // Engine 1: use run()
+      const engine1 = new SAEngine({ ...params });
+      const result1 = engine1.run();
+
+      // Engine 2: use step-by-step
+      const engine2 = new SAEngine({ ...params });
+      engine2.init();
+      while (!engine2.getState().isComplete) {
+        engine2.step();
+      }
+      const result2 = engine2.getResult();
+
+      // Both should produce identical results
+      expect(result2.bestEnergy).toBe(result1.bestEnergy);
+      expect(result2.acceptedMoves).toBe(result1.acceptedMoves);
+      expect(result2.rejectedMoves).toBe(result1.rejectedMoves);
+      expect(result2.invalidMoves).toBe(result1.invalidMoves);
+      expect(result2.totalSteps).toBe(result1.totalSteps);
+    });
+
+    it('run() still works unchanged (backward compatibility)', () => {
+      const engine = new SAEngine(stepParams);
+      const result = engine.run();
+
+      // Verify run() works exactly as before
+      expect(result.bestGraph).toBeDefined();
+      expect(result.bestEnergy).toBeTypeOf('number');
+      expect(result.totalSteps).toBe(100);
+      expect(result.history.length).toBe(100);
+
+      // Accounting still correct
+      const sum = result.acceptedMoves + result.rejectedMoves + result.invalidMoves;
+      expect(sum).toBe(result.totalSteps);
     });
   });
 });

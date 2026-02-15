@@ -17,3 +17,16 @@ export interface SAStepResult {
   temperature: number;    // Temperature at this step
   accepted: boolean;      // Whether the move was accepted
 }
+
+export interface SAEngineState {
+  step: number;
+  totalSteps: number;
+  cycle: number;
+  currentEnergy: number;
+  bestEnergy: number;
+  temperature: number;
+  acceptedMoves: number;
+  rejectedMoves: number;
+  invalidMoves: number;
+  isComplete: boolean;
+}
