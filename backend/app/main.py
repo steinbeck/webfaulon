@@ -1,5 +1,7 @@
 """Main FastAPI application with CORS, health check, and error handling."""
 
+import asyncio
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +10,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import Settings
 from app.models.errors import ErrorResponse
+from app.dependencies import session_manager
+from app.api.sa_configure import router as configure_router
+from app.api.sa_control import router as control_router
+from app.api.sa_status import router as status_router
 
 settings = Settings()
 
@@ -75,6 +81,25 @@ async def generic_exception_handler(request: Request, exc: Exception):
             status_code=500,
         ).model_dump(),
     )
+
+
+# Register API routers
+app.include_router(configure_router)
+app.include_router(control_router)
+app.include_router(status_router)
+
+
+# Startup event for periodic session cleanup
+@app.on_event("startup")
+async def startup_event():
+    """Start periodic session cleanup."""
+
+    async def periodic_cleanup():
+        while True:
+            await asyncio.sleep(300)  # Every 5 minutes
+            session_manager.cleanup_expired()
+
+    asyncio.create_task(periodic_cleanup())
 
 
 # Health check endpoint
