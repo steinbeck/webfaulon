@@ -1,0 +1,70 @@
+"""Main FastAPI application with CORS, health check, and error handling."""
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.config import Settings
+from app.models.errors import ErrorResponse
+
+settings = Settings()
+
+app = FastAPI(title="WebFaulon API", version="2.0.0")
+
+# Add CORS middleware FIRST (before any other middleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.allowed_origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# Exception handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Handle validation errors with structured ErrorResponse."""
+    return JSONResponse(
+        status_code=422,
+        content=ErrorResponse(
+            error="Validation Error",
+            detail=str(exc),
+            status_code=422,
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Handle HTTP exceptions with structured ErrorResponse."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorResponse(
+            error=exc.detail or "HTTP Error",
+            detail=None,
+            status_code=exc.status_code,
+        ).model_dump(),
+    )
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    """Handle unexpected errors with structured ErrorResponse."""
+    detail = str(exc) if settings.debug else None
+    return JSONResponse(
+        status_code=500,
+        content=ErrorResponse(
+            error="Internal Server Error",
+            detail=detail,
+            status_code=500,
+        ).model_dump(),
+    )
+
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint returning server status."""
+    return {"status": "healthy", "version": "2.0.0"}
