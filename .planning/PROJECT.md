@@ -2,23 +2,25 @@
 
 ## What This Is
 
-A web application implementing Faulon's 1996 simulated annealing algorithm for searching constitutional isomer space (Faulon, J. Chem. Inf. Comput. Sci. 1996, 36, 731-740). Users enter a molecular formula, configure SA parameters, and watch the algorithm explore isomer space in real time with live optimization charts and 2D structure rendering. Built on a FastAPI/Python RDKit backend with a lightweight web frontend.
+A web application implementing Faulon's 1996 simulated annealing algorithm for searching constitutional isomer space (Faulon, J. Chem. Inf. Comput. Sci. 1996, 36, 731-740). Users enter a molecular formula, configure SA parameters, and watch the algorithm explore isomer space in real time with live optimization charts and 2D structure rendering. Built on a FastAPI/Python RDKit backend with a lightweight Alpine.js/Chart.js frontend, featuring a multi-component target function framework.
 
 ## Core Value
 
 Students can see and interact with the SA algorithm exploring constitutional isomer space in real time — making the abstract algorithm from the paper tangible and intuitive.
 
-## Current Milestone: v2.0 Python Backend Architecture
+## Current State
 
-**Goal:** Re-architect from browser-only to FastAPI backend with Python RDKit, enabling full cheminformatics capabilities and a multi-component target function framework.
+v2.0 shipped 2026-02-16. All planned milestones complete.
 
-**Target features:**
-- FastAPI backend with Python RDKit for all molecular operations
-- Faulon SA algorithm ported to Python using native RDKit molecules
-- Multi-component target function framework (pluggable, weighted) — Wiener Index as first component
-- SSE streaming for live SA progress to frontend
-- Backend SVG rendering (eliminates RDKit.js WASM dependency)
-- Frontend becomes thin visualization layer (Chart.js + Alpine.js)
+**Tech stack:**
+- Backend: FastAPI + Python RDKit (2,428 LOC app, 3,245 LOC tests, 238 tests)
+- Frontend: Vite + TypeScript + Alpine.js + Chart.js (4,279 LOC)
+- Communication: REST API + SSE streaming
+- Deployment: GitHub Pages (frontend) + local Python backend
+
+**Known issues:**
+- Offline usage regression: v2.0 requires backend connection (v1.0 worked offline)
+- No cloud deployment — backend runs on user's machine only
 
 ## Requirements
 
@@ -35,18 +37,21 @@ Students can see and interact with the SA algorithm exploring constitutional iso
 - Current best isomer rendered as 2D chemical structure — v1.0
 - Best score displayed alongside the structure — v1.0
 - UI is clean and suitable for classroom projection — v1.0
+- Python RDKit backend handles all molecular operations natively — v2.0
+- Faulon displacement algorithm operates on RDKit molecules directly — v2.0
+- Multi-component target function framework with pluggable components and adjustable weights — v2.0
+- Wiener Index implemented as first target function component — v2.0
+- LogP implemented as second target function component — v2.0
+- FastAPI serves REST endpoints for SA configuration and control — v2.0
+- SSE streams live SA progress to frontend — v2.0
+- Backend generates 2D SVG depictions via Python RDKit — v2.0
+- Frontend displays backend-rendered SVGs (no RDKit.js WASM) — v2.0
+- Same UX as v1 (formula input, presets, parameter controls, start/pause/reset, live chart, structure display) — v2.0
+- Unsaturated molecules (benzene, naphthalene) work correctly with displacement — v2.0
 
 ### Active
 
-- [ ] Python RDKit backend handles all molecular operations natively
-- [ ] Faulon displacement algorithm operates on RDKit molecules directly (no custom MolGraph)
-- [ ] Multi-component target function framework with pluggable components and adjustable weights
-- [ ] Wiener Index implemented as first target function component
-- [ ] FastAPI serves REST endpoints for SA configuration and control
-- [ ] SSE (Server-Sent Events) streams live SA progress to frontend
-- [ ] Backend generates 2D SVG depictions via Python RDKit
-- [ ] Frontend displays backend-rendered SVGs (no RDKit.js WASM)
-- [ ] Same UX as v1 (formula input, presets, parameter controls, start/pause/reset, live chart, structure display)
+(No active requirements — next milestone not yet planned)
 
 ### Out of Scope
 
@@ -56,6 +61,9 @@ Students can see and interact with the SA algorithm exploring constitutional iso
 - 3D conformational visualization — 2D structure only
 - Database of known structures / isomorphism checking
 - Multi-user / collaboration features
+- Celery/Redis task queue — YAGNI for educational demo
+- Database persistence — in-memory dict sufficient for ephemeral classroom use
+- Authentication/authorization — classroom tool, not multi-user SaaS
 
 ## Context
 
@@ -64,10 +72,11 @@ Students can see and interact with the SA algorithm exploring constitutional iso
 - Wiener Index = half the sum of all shortest-path distances between pairs of atoms in the molecular graph.
 - The paper's best annealing schedule was f8 with initial kT=100, using 500 steps per cycle and 4-8 cycles.
 - Cooling schedules: f_k: kT_t = kT_0 - k * kT_0 * t / delta_t (clamped to 0).
-- v1 was browser-only (TypeScript, Web Worker, RDKit.js WASM). v2 moves computation to Python backend.
+- v1.0 was browser-only (TypeScript, Web Worker, RDKit.js WASM). v2.0 moved computation to Python backend.
 - Python RDKit provides full cheminformatics: molecular operations, descriptor computation, 2D depiction, and extensibility for future spectroscopic scoring.
 - Target audience: chemistry students and researchers.
 - The paper (PDF) is in `docs/` for reference.
+- 6 preset molecules: C6H14, C8H18, C8H10, C10H22, C10H16, C10H8
 
 ## Constraints
 
@@ -75,7 +84,7 @@ Students can see and interact with the SA algorithm exploring constitutional iso
 - **Frontend**: Vite + TypeScript + Alpine.js + Chart.js (keep existing frontend tooling)
 - **Communication**: REST API for commands, SSE for streaming progress
 - **Rendering**: Python RDKit generates SVG, frontend displays it
-- **Deployment**: Docker or similar for backend; frontend still buildable as static assets
+- **Deployment**: GitHub Pages for frontend, local Python process for backend
 - **Browser**: Modern browsers (no WASM dependency for RDKit anymore)
 
 ## Key Decisions
@@ -86,11 +95,15 @@ Students can see and interact with the SA algorithm exploring constitutional iso
 | In-browser only, no backend (v1) | Simplest deployment for classroom use | v1 validated |
 | Wiener Index as sole cost function (v1) | Matches paper's primary test case | v1 validated |
 | Modern SPA with Vite (v1) | Good DX, tree-shaking | v1 validated |
-| Switch to Python RDKit backend (v2) | Full cheminformatics access, enables spectroscopic scoring in future | — Pending |
-| FastAPI for backend (v2) | Async, fast, auto-generated OpenAPI docs, SSE support | — Pending |
-| SSE for live SA updates (v2) | One-way stream, simpler than WebSocket, perfect for progress updates | — Pending |
-| Backend SVG rendering (v2) | Eliminates RDKit.js WASM from frontend, single source of truth for molecule handling | — Pending |
-| Multi-component target function (v2) | Extensible architecture for future spectroscopic components | — Pending |
+| Switch to Python RDKit backend (v2) | Full cheminformatics access, enables spectroscopic scoring in future | v2 validated |
+| FastAPI for backend (v2) | Async, fast, auto-generated OpenAPI docs, SSE support | v2 validated |
+| SSE for live SA updates (v2) | One-way stream, simpler than WebSocket, perfect for progress updates | v2 validated |
+| Backend SVG rendering (v2) | Eliminates RDKit.js WASM from frontend, single source of truth | v2 validated |
+| Multi-component target function (v2) | Extensible architecture for future spectroscopic components | v2 validated |
+| No SanitizeMol in set_bond() (v2) | Faulon eqs 7-9 preserve valence by construction; avoids AROMATIC crash | v2 validated |
+| LogP as second component (not MW) (v2) | MW is constant across isomers; LogP varies and is chemically meaningful | v2 validated |
+| Local deployment (not cloud PaaS) (v2) | Simpler for classroom; no cloud costs; localhost always works | v2 validated |
+| Protocol-based scoring components (v2) | Duck-typed interface for pluggable scoring; Pythonic | v2 validated |
 
 ---
-*Last updated: 2026-02-15 after milestone v2.0 started*
+*Last updated: 2026-02-16 after v2.0 milestone shipped*
