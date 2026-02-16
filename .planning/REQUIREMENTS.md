@@ -155,43 +155,43 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-01 | Phase 3 | Done |
 | UX-02 | Phase 3 | Done |
 
-### v2.0 (Pending)
+### v2.0 (In Progress)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BACK-01 | — | Pending |
-| BACK-02 | — | Pending |
-| BACK-03 | — | Pending |
-| BACK-04 | — | Pending |
-| MOL-01 | — | Pending |
-| MOL-02 | — | Pending |
-| MOL-03 | — | Pending |
-| MOL-04 | — | Pending |
-| SA-01 | — | Pending |
-| SA-02 | — | Pending |
-| SA-03 | — | Pending |
-| SA-04 | — | Pending |
-| API-01 | — | Pending |
-| API-02 | — | Pending |
-| API-03 | — | Pending |
-| API-04 | — | Pending |
-| TGT-01 | — | Pending |
-| TGT-02 | — | Pending |
-| TGT-03 | — | Pending |
-| FE-01 | — | Pending |
-| FE-02 | — | Pending |
-| FE-03 | — | Pending |
-| FE-04 | — | Pending |
-| DEP-01 | — | Pending |
-| DEP-02 | — | Pending |
-| DEP-03 | — | Pending |
+| BACK-01 | Phase 4 | Pending |
+| BACK-02 | Phase 4 | Pending |
+| BACK-03 | Phase 4 | Pending |
+| BACK-04 | Phase 4 | Pending |
+| MOL-01 | Phase 4 | Pending |
+| MOL-02 | Phase 4 | Pending |
+| MOL-03 | Phase 5 | Pending |
+| MOL-04 | Phase 4 | Pending |
+| SA-01 | Phase 4 | Pending |
+| SA-02 | Phase 4 | Pending |
+| SA-03 | Phase 5 | Pending |
+| SA-04 | Phase 5 | Pending |
+| API-01 | Phase 5 | Pending |
+| API-02 | Phase 5 | Pending |
+| API-03 | Phase 5 | Pending |
+| API-04 | Phase 5 | Pending |
+| TGT-01 | Phase 7 | Pending |
+| TGT-02 | Phase 4 | Pending |
+| TGT-03 | Phase 7 | Pending |
+| FE-01 | Phase 6 | Pending |
+| FE-02 | Phase 6 | Pending |
+| FE-03 | Phase 6 | Pending |
+| FE-04 | Phase 6 | Pending |
+| DEP-01 | Phase 8 | Pending |
+| DEP-02 | Phase 8 | Pending |
+| DEP-03 | Phase 8 | Pending |
 
 **Coverage:**
-- v1.0 requirements: 21 total — all Done
+- v1.0 requirements: 21 total -- all Done
 - v2.0 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 (pending roadmap creation)
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-14*
-*Last updated: 2026-02-15 after v2.0 requirements defined*
+*Last updated: 2026-02-15 after v2.0 roadmap created*
