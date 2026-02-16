@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 
 ## Current Position
 
-Phase: 4 of 8 (Backend Core & RDKit Foundation)
-Plan: 4 of 4 in current phase
-Status: Complete
-Last activity: 2026-02-16 -- Completed 04-04 (SAEngine Implementation)
+Phase: 5 of 8 (API Layer & SSE Streaming)
+Plan: 1 of 3 in current phase
+Status: In Progress
+Last activity: 2026-02-16 -- Completed 05-01 (SessionManager and SVG Renderer Services)
 
-Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete
+Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 1/3 v2.0 Phase 5 in progress
 
 ## Performance Metrics
 
@@ -39,6 +39,7 @@ Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 
 | 04 | 02 | 280s (4m 40s) | 2 | 10 |
 | 04 | 03 | 347s (5m 47s) | 2 | 9 |
 | 04 | 04 | 251s (4m 11s) | 2 | 3 |
+| 05 | 01 | 192s (3m 12s) | 2 | 5 |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ v2.0 architectural decisions (from research):
 - [Phase 04-04]: Store SMILES strings in SAResult instead of MoleculeGraph objects (memory optimization)
 - [Phase 04-04]: Implement step-by-step API (init/step/get_state/get_result) for SSE streaming support
 - [Phase 04-04]: Use Pydantic v2 models for SA parameters/results for type safety and auto-validation
+- [Phase 05-01]: Use UUID strings for session IDs (standard, secure, collision-resistant)
+- [Phase 05-01]: Manual TTL cleanup (cleanup_expired()) not automatic to avoid background threads (YAGNI)
 
 ### Pending Todos
 
@@ -82,5 +85,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 04-04-PLAN.md (SAEngine Implementation) - Phase 04 Complete
+Stopped at: Completed 05-01-PLAN.md (SessionManager and SVG Renderer Services)
 Resume file: None
