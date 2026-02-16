@@ -42,7 +42,8 @@ export class SSEConnection {
     this.close();
 
     // Create new EventSource connection
-    this.eventSource = new EventSource(`/api/sa/${sessionId}/stream`);
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    this.eventSource = new EventSource(`${apiBase}/api/sa/${sessionId}/stream`);
 
     // Register typed event listeners
     if (handlers.onProgress) {

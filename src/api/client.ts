@@ -15,7 +15,9 @@ import type {
  * API client for Simulated Annealing backend endpoints.
  */
 export class SAAPIClient {
-  private baseURL = '/api/sa';
+  private baseURL = import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api/sa`
+    : '/api/sa';
 
   /**
    * Create a new SA session with provided configuration.
