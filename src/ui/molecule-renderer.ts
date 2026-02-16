@@ -1,103 +1,46 @@
 /**
- * RDKit.js 2D Molecule Renderer
+ * SVG Molecule Renderer
  *
- * Renders molecular structures from V2000 MOL blocks to canvas elements.
- * Uses RDKit.js to parse MOL blocks, generate 2D coords, and render.
- * Also derives canonical SMILES from RDKit for display.
+ * Renders molecular structures from backend-generated SVG markup.
+ * Replaces RDKit.js WASM canvas rendering with simple innerHTML-based approach.
+ * Backend RDKit generates 2D coords and SVG, frontend just displays it.
  */
-
-// Module-level state to track last rendered MOL block
-let _lastRenderedMolBlock: string | null = null;
 
 /**
- * Render a molecule from a V2000 MOL block to canvas using RDKit.js.
- * Also returns canonical SMILES derived by RDKit.
+ * Render a molecule from SVG markup to an HTML element.
  *
- * @param molBlock - V2000 MOL block string (from MolGraph.toMolBlock())
- * @param canvas - The HTMLCanvasElement to render on
- * @returns canonical SMILES string if render succeeded, null if skipped or failed
- */
-export function renderMolecule(molBlock: string, canvas: HTMLCanvasElement): string | null {
-  // Skip redundant re-render if MOL block hasn't changed
-  if (molBlock === _lastRenderedMolBlock) {
-    return null;
-  }
-
-  // Get RDKit from global (loaded via script tag)
-  const RDKit = (window as any).__rdkit;
-  if (!RDKit) {
-    console.warn('RDKit.js not loaded - cannot render molecule');
-    return null;
-  }
-
-  let mol = null;
-
-  try {
-    mol = RDKit.get_mol(molBlock);
-
-    if (!mol || !mol.is_valid()) {
-      if (mol) { mol.delete(); mol = null; }
-      throw new Error('RDKit could not parse MOL block');
-    }
-
-    // Get canonical SMILES from RDKit
-    const smiles: string = mol.get_smiles();
-
-    // Generate 2D coordinates for rendering (MOL block has all-zero coords
-    // since MolGraph stores topology only, not geometry)
-    mol.set_new_coords();
-
-    // Clear canvas before rendering
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Render molecule to canvas (-1, -1 = use full canvas dimensions)
-    mol.draw_to_canvas(canvas, -1, -1);
-
-    _lastRenderedMolBlock = molBlock;
-    return smiles;
-  } catch (error) {
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'rgb(239, 68, 68)';
-      ctx.font = '14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const errMsg = error instanceof Error ? error.message : String(error);
-      ctx.fillText('Could not render molecule', canvas.width / 2, canvas.height / 2 - 10);
-      ctx.font = '11px monospace';
-      ctx.fillStyle = 'rgb(180, 80, 80)';
-      ctx.fillText(errMsg.slice(0, 60), canvas.width / 2, canvas.height / 2 + 10);
-    }
-    console.error('[mol-renderer] render failed:', error);
-    return null;
-  } finally {
-    if (mol) {
-      mol.delete();
-    }
-  }
-}
-
-/**
- * Clear the molecule canvas and show placeholder text.
+ * The backend generates SVG via RDKit, frontend displays via innerHTML.
+ * Browser parses SVG natively - no WASM, no canvas operations needed.
  *
- * @param canvas - The HTMLCanvasElement to clear
+ * @param svg - SVG markup string from backend (StatusResponse.best_svg or SSEProgressData.best_svg)
+ * @param container - The HTMLElement to render into
  */
-export function clearMoleculeCanvas(canvas: HTMLCanvasElement): void {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
+export function renderMoleculeSVG(svg: string, container: HTMLElement): void {
+  // Guard against missing inputs
+  if (!svg || !container) {
     return;
   }
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  _lastRenderedMolBlock = null;
+  // Set innerHTML - browser parses SVG markup natively
+  // Backend RDKit generates safe SVG, no sanitization needed
+  container.innerHTML = svg;
+}
 
-  ctx.fillStyle = 'rgb(156, 163, 175)';
-  ctx.font = '14px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('No structure yet', canvas.width / 2, canvas.height / 2);
+/**
+ * Clear the molecule display and show placeholder.
+ *
+ * @param container - The HTMLElement to clear
+ */
+export function clearMoleculeDisplay(container: HTMLElement): void {
+  // Guard against missing container
+  if (!container) {
+    return;
+  }
+
+  // Show centered gray placeholder
+  container.innerHTML = `
+    <div style="display: flex; align-items: center; justify-content: center; height: 100%;">
+      <p style="color: #9ca3af; font-size: 14px; font-family: sans-serif;">No structure yet</p>
+    </div>
+  `;
 }
