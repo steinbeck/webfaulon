@@ -14,6 +14,7 @@ from app.dependencies import session_manager
 from app.api.sa_configure import router as configure_router
 from app.api.sa_control import router as control_router
 from app.api.sa_status import router as status_router
+from app.api.sa_stream import router as stream_router
 
 settings = Settings()
 
@@ -87,6 +88,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
 app.include_router(configure_router)
 app.include_router(control_router)
 app.include_router(status_router)
+app.include_router(stream_router)
 
 
 # Startup event for periodic session cleanup
