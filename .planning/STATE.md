@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 Phase: 4 of 8 (Backend Core & RDKit Foundation)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: Executing
-Last activity: 2026-02-16 -- Completed 04-02 (Pure Python Utilities TDD Port)
+Last activity: 2026-02-16 -- Completed 04-01 (FastAPI Backend Scaffold)
 
-Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 1/4 v2.0 Phase 4
+Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 2/4 v2.0 Phase 4
 
 ## Performance Metrics
 
@@ -35,7 +35,8 @@ Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 
 
 | Phase | Plan | Duration | Tasks | Files |
 |-------|------|----------|-------|-------|
-| 04 | 02 | 280s (4m) | 2 | 10 |
+| 04 | 01 | 340s (5m 40s) | 2 | 9 |
+| 04 | 02 | 280s (4m 40s) | 2 | 10 |
 
 ## Accumulated Context
 
@@ -54,6 +55,10 @@ v2.0 architectural decisions (from research):
 - BackgroundTasks for SA execution (not Celery/Redis -- YAGNI)
 - In-memory dict for session state (not database -- ephemeral classroom use)
 - Monorepo: backend/ and frontend/ as sibling directories
+- [Phase 04-01]: Poetry for dependency management with virtualenvs.in-project=true for local .venv
+- [Phase 04-01]: Pydantic Settings with WEBFAULON_ env prefix for configuration
+- [Phase 04-01]: CORS middleware added FIRST before other middleware
+- [Phase 04-01]: StarletteHTTPException handler needed to catch default 404 responses
 - [Phase 04-02]: Use pip for pytest instead of Poetry (not available in environment)
 - [Phase 04-02]: Emulate JavaScript Math.imul with signed 32-bit conversion for cross-language determinism
 
@@ -69,5 +74,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 04-02-PLAN.md (Pure Python Utilities TDD Port)
+Stopped at: Completed 04-01-PLAN.md (FastAPI Backend Scaffold)
 Resume file: None
