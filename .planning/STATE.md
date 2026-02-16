@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 Phase: 7 of 8 (Multi-Component Target Function)
-Plan: 1 of 2 in current phase
+Plan: 2 of 2 in current phase
 Status: Complete
-Last activity: 2026-02-16 -- Completed 07-01 (Scoring Component Framework)
+Last activity: 2026-02-16 -- Completed 07-02 (Multi-Component Target Function)
 
-Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete, 1/2 v2.0 Phase 7 in progress
+Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete, 2/2 v2.0 Phase 7 complete
 
 ## Performance Metrics
 
@@ -45,6 +45,7 @@ Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0
 | 06 | 01 | 144s (2m 24s) | 2 | 5 |
 | 06 | 02 | ~300s (5m) | 2 | 2 |
 | 07 | 01 | 147s (2m 27s) | 2 | 6 |
+| 07 | 02 | 186s (3m 6s) | 2 | 4 |
 
 ## Accumulated Context
 
@@ -94,6 +95,10 @@ v2.0 architectural decisions (from research):
 - [Phase 07-01]: Replace MolecularWeightComponent with LogPComponent (MW constant across isomers, LogP varies)
 - [Phase 07-01]: Protocol-based polymorphism using @runtime_checkable for duck-typed component interface
 - [Phase 07-01]: Singleton ComponentRegistry pattern with helpful error messages listing available components
+- [Phase 07-02]: Default component_weights={'wiener_index': 1.0} ensures perfect backward compatibility
+- [Phase 07-02]: Zero-weight components skipped in _compute_energy() for efficiency
+- [Phase 07-02]: Component validation at SAEngine.__init__() for fail-fast errors with helpful messages
+- [Phase 07-02]: LogP requires UpdatePropertyCache() + SanitizeMol() before MolLogP() call
 
 ### Roadmap Evolution
 
@@ -111,5 +116,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 07-01 (Scoring Component Framework)
+Stopped at: Completed 07-02 (Multi-Component Target Function) - Phase 7 Complete
 Resume file: None
