@@ -1,7 +1,7 @@
 """Tests for scoring components, protocol compliance, and registry."""
 import pytest
 from app.core.scoring.wiener import WienerIndexComponent
-from app.core.scoring.molecular_weight import MolecularWeightComponent
+from app.core.scoring.logp import LogPComponent
 from app.core.scoring.registry import ComponentRegistry, get_registry
 from app.core.wiener import compute_wiener_index
 from app.core.molecule import MoleculeGraph
@@ -48,27 +48,29 @@ class TestWienerIndexComponent:
         assert component_result == standalone_result
 
 
-class TestMolecularWeightComponent:
-    """Test MolecularWeightComponent satisfies protocol and computes correctly"""
+class TestLogPComponent:
+    """Test LogPComponent satisfies protocol and computes correctly"""
 
-    def test_name_is_molecular_weight(self):
-        """Component name should be 'molecular_weight'"""
-        component = MolecularWeightComponent()
-        assert component.name == "molecular_weight"
+    def test_name_is_logp(self):
+        """Component name should be 'logp'"""
+        component = LogPComponent()
+        assert component.name == "logp"
 
-    def test_hexane_mw(self):
-        """Hexane (C6H14) should have molecular weight ~86.18 Da"""
+    def test_linear_vs_branched_logp_differs(self):
+        """LogP should differ between linear and branched isomers"""
+        linear = MoleculeGraph.create_linear_alkane(6)
+        branched = MoleculeGraph.create_branched('isobutane')
+        component = LogPComponent()
+        linear_logp = component.compute(linear)
+        branched_logp = component.compute(branched)
+        assert linear_logp != branched_logp, "LogP should vary across constitutional isomers"
+
+    def test_hexane_logp_positive(self):
+        """Hexane (hydrocarbon) should have positive LogP"""
         graph = MoleculeGraph.create_linear_alkane(6)
-        component = MolecularWeightComponent()
-        mw = component.compute(graph)
-        assert 85.0 < mw < 87.0, f"Expected ~86.18, got {mw}"
-
-    def test_methane_mw(self):
-        """Methane (CH4) should have molecular weight ~16.04 Da"""
-        graph = MoleculeGraph.create_linear_alkane(1)
-        component = MolecularWeightComponent()
-        mw = component.compute(graph)
-        assert 15.0 < mw < 17.0, f"Expected ~16.04, got {mw}"
+        component = LogPComponent()
+        logp = component.compute(graph)
+        assert logp > 0, f"Expected positive LogP for hydrocarbon, got {logp}"
 
 
 class TestProtocolCompliance:
@@ -80,9 +82,9 @@ class TestProtocolCompliance:
         assert hasattr(component, 'name')
         assert callable(getattr(component, 'compute'))
 
-    def test_molecular_weight_has_name_and_compute(self):
-        """MolecularWeightComponent should have name attribute and compute method"""
-        component = MolecularWeightComponent()
+    def test_logp_has_name_and_compute(self):
+        """LogPComponent should have name attribute and compute method"""
+        component = LogPComponent()
         assert hasattr(component, 'name')
         assert callable(getattr(component, 'compute'))
 
@@ -96,10 +98,10 @@ class TestComponentRegistry:
         component = registry.get("wiener_index")
         assert component is not None
 
-    def test_default_registry_has_molecular_weight(self):
-        """Default registry should have molecular_weight component"""
+    def test_default_registry_has_logp(self):
+        """Default registry should have logp component"""
         registry = get_registry()
-        component = registry.get("molecular_weight")
+        component = registry.get("logp")
         assert component is not None
 
     def test_list_components(self):
@@ -107,7 +109,7 @@ class TestComponentRegistry:
         registry = get_registry()
         components = registry.list_components()
         assert "wiener_index" in components
-        assert "molecular_weight" in components
+        assert "logp" in components
 
     def test_unknown_component_raises_keyerror(self):
         """Getting unknown component should raise KeyError"""
@@ -124,7 +126,7 @@ class TestComponentRegistry:
         except KeyError as e:
             error_msg = str(e)
             assert "wiener_index" in error_msg
-            assert "molecular_weight" in error_msg
+            assert "logp" in error_msg
 
     def test_duplicate_registration_raises(self):
         """Registering duplicate component name should raise ValueError"""
