@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time -- making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** v2.0 Phase 7 -- Multi-Component Target Function (In Progress)
+**Current focus:** v2.0 Phase 8 -- Deployment & Production (In Progress)
 
 ## Current Position
 
-Phase: 7 of 8 (Multi-Component Target Function)
-Plan: 2 of 2 in current phase
+Phase: 8 of 8 (Deployment & Production)
+Plan: 1 of 2 in current phase
 Status: Complete
-Last activity: 2026-02-16 -- Completed 07-02 (Multi-Component Target Function)
+Last activity: 2026-02-16 -- Completed 08-01 (Production Configuration)
 
-Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete, 2/2 v2.0 Phase 7 complete
+Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete, 2/2 v2.0 Phase 7 complete, 1/2 v2.0 Phase 8 complete
 
 ## Performance Metrics
 
@@ -46,6 +46,7 @@ Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0
 | 06 | 02 | ~300s (5m) | 2 | 2 |
 | 07 | 01 | 147s (2m 27s) | 2 | 6 |
 | 07 | 02 | 186s (3m 6s) | 2 | 4 |
+| 08 | 01 | 102s (1m 42s) | 2 | 6 |
 
 ## Accumulated Context
 
@@ -99,6 +100,10 @@ v2.0 architectural decisions (from research):
 - [Phase 07-02]: Zero-weight components skipped in _compute_energy() for efficiency
 - [Phase 07-02]: Component validation at SAEngine.__init__() for fail-fast errors with helpful messages
 - [Phase 07-02]: LogP requires UpdatePropertyCache() + SanitizeMol() before MolLogP() call
+- [Phase 08-01]: Manual requirements.txt creation with >= constraints (not poetry export) for clean production deps
+- [Phase 08-01]: VITE_API_URL environment variable for build-time backend URL injection
+- [Phase 08-01]: .env.production committed to repo (Vite convention), .env excluded via gitignore
+- [Phase 08-01]: Conditional URL construction with fallback to relative paths preserves dev workflow
 
 ### Roadmap Evolution
 
@@ -116,5 +121,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 07-02 (Multi-Component Target Function) - Phase 7 Complete
+Stopped at: Completed 08-01 (Production Configuration) - Phase 8 Plan 1 Complete
 Resume file: None
