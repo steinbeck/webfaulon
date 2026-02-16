@@ -122,11 +122,11 @@ Plans:
   2. Live chart updates from SSE events with the same responsiveness as v1.0 Web Worker updates
   3. Best molecule renders as SVG received from the backend (no RDKit.js WASM loaded in the browser)
   4. Start, pause, and reset buttons work correctly during an active SA run
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md -- API client infrastructure (types, REST client, SSE wrapper) + SVG molecule renderer + Vite proxy
+- [ ] 06-02-PLAN.md -- Rewire app.ts from Web Worker to backend API + SSE, update index.html, human verification
 
 ### Phase 7: Multi-Component Target Function
 **Goal**: SA optimization supports multiple pluggable scoring components with user-configurable weights
