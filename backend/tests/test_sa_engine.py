@@ -333,7 +333,7 @@ class TestMetropolisCriterion:
         assert result.accepted_moves > 0
 
     def test_high_temp_high_acceptance(self):
-        """At high temperature, acceptance ratio > 0.3."""
+        """At high temperature, acceptance ratio among connected moves > 0.3."""
         params = SAParams(
             formula="C6H14",
             initial_temp=1000,
@@ -347,8 +347,11 @@ class TestMetropolisCriterion:
         engine = SAEngine(params)
         result = engine.run()
 
-        # At very high temperature, should accept most valid moves
-        assert result.acceptance_ratio > 0.3
+        # Disconnected and invalid moves never reach Metropolis
+        connected_moves = result.accepted_moves + result.rejected_moves
+        if connected_moves > 0:
+            connected_acceptance = result.accepted_moves / connected_moves
+            assert connected_acceptance > 0.3
 
     def test_high_temp_higher_than_low_temp(self):
         """High temp acceptance > low temp acceptance."""

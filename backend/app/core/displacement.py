@@ -15,6 +15,11 @@ MAX_BOND_ORDER = 3
 # Minimum number of atoms required for displacement
 MIN_ATOMS_FOR_DISPLACEMENT = 4
 
+# Maximum attempts to find a non-trivial displacement before giving up.
+# Sparse graphs (long chains) often produce no-op displacements where
+# b == a because the randomly selected atoms share no bonds.
+MAX_DISPLACEMENT_ATTEMPTS = 10
+
 
 def compute_displacement_bonds(
     a11: int, a12: int, a21: int, a22: int, rng: SeededRandom
@@ -87,6 +92,11 @@ def attempt_displacement(
     """
     Attempt a Faulon displacement on the given graph.
 
+    Retries up to MAX_DISPLACEMENT_ATTEMPTS times to find a non-trivial
+    displacement (one that actually changes bond orders). Sparse graphs
+    like long chains often produce no-op displacements where the randomly
+    selected 4 atoms share no bonds.
+
     Faulon equations 7-9 preserve valence by construction, so no
     sanitization is needed after bond changes. Connectivity is NOT
     checked here -- the SA engine handles disconnected structures
@@ -106,32 +116,41 @@ def attempt_displacement(
     if atom_count < MIN_ATOMS_FOR_DISPLACEMENT:
         return None
 
-    # Select 4 distinct atoms (Faulon paper p.733, Table 2, step 2.1)
-    selected = rng.select_n_distinct(4, atom_count)
-    x1, y1, x2, y2 = selected[0], selected[1], selected[2], selected[3]
+    for _ in range(MAX_DISPLACEMENT_ATTEMPTS):
+        # Select 4 distinct atoms (Faulon paper p.733, Table 2, step 2.1)
+        selected = rng.select_n_distinct(4, atom_count)
+        x1, y1, x2, y2 = selected[0], selected[1], selected[2], selected[3]
 
-    # Read current bond orders (a notation from paper)
-    # Paper p.733: "Let a11, a12, a21, and a22 be the orders of
-    # the bonds [x1,y1], [x1,y2], [x2,y1], and [x2,y2]"
-    a11 = mol_graph.get_bond_order(x1, y1)
-    a12 = mol_graph.get_bond_order(y1, y2)
-    a21 = mol_graph.get_bond_order(x1, x2)
-    a22 = mol_graph.get_bond_order(x2, y2)
+        # Read current bond orders (a notation from paper)
+        # Paper p.733: "Let a11, a12, a21, and a22 be the orders of
+        # the bonds [x1,y1], [x1,y2], [x2,y1], and [x2,y2]"
+        a11 = mol_graph.get_bond_order(x1, y1)
+        a12 = mol_graph.get_bond_order(y1, y2)
+        a21 = mol_graph.get_bond_order(x1, x2)
+        a22 = mol_graph.get_bond_order(x2, y2)
 
-    # Compute new bond orders using Faulon equations 7-11
-    new_bonds = compute_displacement_bonds(a11, a12, a21, a22, rng)
+        # Compute new bond orders using Faulon equations 7-11
+        new_bonds = compute_displacement_bonds(a11, a12, a21, a22, rng)
 
-    # If no valid displacement exists for this atom selection, try again later
-    if new_bonds is None:
-        return None
+        # If no valid displacement exists for this atom selection, retry
+        if new_bonds is None:
+            continue
 
-    # Clone the graph (don't mutate original)
-    new_graph = mol_graph.clone()
+        # Skip no-op displacements (b == a, nothing changes)
+        if (new_bonds["b11"] == a11 and new_bonds["b12"] == a12
+                and new_bonds["b21"] == a21 and new_bonds["b22"] == a22):
+            continue
 
-    # Apply new bond orders (no sanitization -- Faulon preserves valence)
-    new_graph.set_bond(x1, y1, new_bonds["b11"])
-    new_graph.set_bond(y1, y2, new_bonds["b12"])
-    new_graph.set_bond(x1, x2, new_bonds["b21"])
-    new_graph.set_bond(x2, y2, new_bonds["b22"])
+        # Clone the graph (don't mutate original)
+        new_graph = mol_graph.clone()
 
-    return new_graph
+        # Apply new bond orders (no sanitization -- Faulon preserves valence)
+        new_graph.set_bond(x1, y1, new_bonds["b11"])
+        new_graph.set_bond(y1, y2, new_bonds["b12"])
+        new_graph.set_bond(x1, x2, new_bonds["b21"])
+        new_graph.set_bond(x2, y2, new_bonds["b22"])
+
+        return new_graph
+
+    # All attempts produced no-ops or invalid ranges
+    return None
