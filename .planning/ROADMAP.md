@@ -88,12 +88,13 @@ Plans:
   3. Python SA engine runs a complete optimization (500 steps x 4 cycles) on C6H14, producing valid SMILES at every step
   4. Faulon displacement on RDKit RWMol preserves valence rules and molecular connectivity (validated by SanitizeMol after every move)
   5. Wiener Index computed via RDKit distance matrix matches v1.0 values for the same molecules
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
+- [ ] 04-01-PLAN.md -- Poetry project scaffold, FastAPI app with CORS, health endpoint, and error handling
+- [ ] 04-02-PLAN.md -- Port SeededRandom, formula parser, and cooling schedule with TDD
+- [ ] 04-03-PLAN.md -- RDKit MoleculeGraph wrapper, Wiener Index, displacement, and initial structure with TDD
+- [ ] 04-04-PLAN.md -- Python SAEngine with Metropolis criterion and full integration tests (TDD)
 
 ### Phase 5: API Layer & SSE Streaming
 **Goal**: Backend exposes a complete REST + SSE API for configuring, controlling, and streaming SA optimization in real time
@@ -162,7 +163,7 @@ Phases execute in numeric order: 4 -> 5 -> 6 -> 7 -> 8
 | 2. Browser Integration & Controls | v1.0 | 3/3 | Complete | 2026-02-15 |
 | 3. Visualization & UX | v1.0 | 3/3 | Complete | 2026-02-15 |
 | 3.1. README & GitHub Pages | v1.0 | 2/2 | Complete | 2026-02-15 |
-| 4. Backend Core & RDKit Foundation | v2.0 | 0/? | Not started | - |
+| 4. Backend Core & RDKit Foundation | v2.0 | 0/4 | Planned | - |
 | 5. API Layer & SSE Streaming | v2.0 | 0/? | Not started | - |
 | 6. Frontend Integration | v2.0 | 0/? | Not started | - |
 | 7. Multi-Component Target Function | v2.0 | 0/? | Not started | - |
@@ -172,3 +173,4 @@ Phases execute in numeric order: 4 -> 5 -> 6 -> 7 -> 8
 
 *Roadmap created: 2026-02-14*
 *v2.0 phases added: 2026-02-15*
+*Phase 4 planned: 2026-02-16*
