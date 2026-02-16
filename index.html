@@ -327,11 +327,9 @@
         max-height: 400px;
       }
 
-      #molecule-canvas {
+      #molecule-display {
         max-width: 100%;
-        max-height: 100%;
-        width: 400px;
-        height: 400px;
+        min-height: 250px;
       }
 
       .smiles-display {
@@ -539,7 +537,7 @@
           <div class="stat-item">
             <span class="stat-label">Current Step</span>
             <span class="stat-value">
-              <span x-text="progress?.step || 0"></span> / <span x-text="progress?.totalSteps || 0"></span>
+              <span x-text="progress?.step || 0"></span> / <span x-text="progress?.total_steps || 0"></span>
             </span>
           </div>
 
@@ -550,12 +548,12 @@
 
           <div class="stat-item">
             <span class="stat-label">Current Wiener Index</span>
-            <span class="stat-value" x-text="progress?.currentEnergy || '-'"></span>
+            <span class="stat-value" x-text="progress?.current_energy || '-'"></span>
           </div>
 
           <div class="stat-item">
             <span class="stat-label">Best Wiener Index</span>
-            <span class="stat-value highlight" x-text="progress?.bestEnergy || '-'"></span>
+            <span class="stat-value highlight" x-text="progress?.best_energy || '-'"></span>
           </div>
         </div>
 
@@ -573,7 +571,7 @@
           <div class="molecule-container">
             <h3>Best Structure</h3>
             <div class="molecule-canvas-wrapper">
-              <canvas id="molecule-canvas" width="400" height="400"></canvas>
+              <div id="molecule-display" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
             </div>
             <div class="smiles-display" x-show="bestSMILES">
               <label>SMILES:</label>
@@ -588,35 +586,30 @@
         <h2>Results</h2>
         <div class="results-grid">
           <div class="result-item">
-            <p>Best Wiener Index: <strong x-text="result?.bestEnergy"></strong></p>
+            <p>Best Wiener Index: <strong x-text="result?.best_energy"></strong></p>
           </div>
           <div class="result-item">
-            <p>Initial Wiener Index: <span x-text="result?.initialEnergy"></span></p>
+            <p>Accepted Moves: <span x-text="result?.accepted_moves"></span></p>
           </div>
           <div class="result-item">
-            <p>Accepted Moves: <span x-text="result?.acceptedMoves"></span></p>
+            <p>Rejected Moves: <span x-text="result?.rejected_moves"></span></p>
           </div>
           <div class="result-item">
-            <p>Rejected Moves: <span x-text="result?.rejectedMoves"></span></p>
+            <p>Invalid Moves: <span x-text="result?.invalid_moves"></span></p>
           </div>
           <div class="result-item">
-            <p>Invalid Moves: <span x-text="result?.invalidMoves"></span></p>
-          </div>
-          <div class="result-item">
-            <p>Acceptance Ratio: <span x-text="result ? (result.acceptanceRatio * 100).toFixed(1) + '%' : '-'"></span></p>
+            <p>Acceptance Ratio: <span x-text="result ? (result.accepted_moves / (result.accepted_moves + result.rejected_moves) * 100).toFixed(1) + '%' : '-'"></span></p>
           </div>
         </div>
       </section>
 
-      <!-- RDKit Status (footer) -->
+      <!-- Backend Status (footer) -->
       <section style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
-        <p x-show="rdkitReady" class="valid-text">✓ RDKit.js WASM loaded</p>
-        <p x-show="rdkitError" x-text="'RDKit error: ' + rdkitError" class="error-text"></p>
-        <p x-show="!rdkitReady && !rdkitError" class="hint">Loading RDKit.js WASM...</p>
+        <p x-show="backendError" x-text="'Backend error: ' + backendError" class="error-text"></p>
+        <p x-show="!backendError" class="hint">Backend: localhost:8000</p>
       </section>
     </div>
 
-    <script src="https://unpkg.com/@rdkit/rdkit@2025.3.4-1.0.0/dist/RDKit_minimal.js"></script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
