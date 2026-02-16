@@ -52,6 +52,10 @@ class SAEngine:
         self._accepted_moves: int = 0
         self._rejected_moves: int = 0
         self._invalid_moves: int = 0
+        self._disconnected_moves: int = 0
+        self._reconnection_events: int = 0
+        self._consecutive_disconnected: int = 0
+        self._max_consecutive_disconnected: int = 0
         self._history: list[SAStepResult] = []
         self._total_steps: int = 0
         self._global_step: int = 0
@@ -78,6 +82,10 @@ class SAEngine:
         self._accepted_moves = 0
         self._rejected_moves = 0
         self._invalid_moves = 0
+        self._disconnected_moves = 0
+        self._reconnection_events = 0
+        self._consecutive_disconnected = 0
+        self._max_consecutive_disconnected = 0
         self._history = []
         self._current_temperature = self._params.initial_temp
         self._initialized = True
@@ -175,6 +183,9 @@ class SAEngine:
             accepted_moves=self._accepted_moves,
             rejected_moves=self._rejected_moves,
             invalid_moves=self._invalid_moves,
+            disconnected_moves=self._disconnected_moves,
+            reconnection_events=self._reconnection_events,
+            max_consecutive_disconnected=self._max_consecutive_disconnected,
             acceptance_ratio=self._accepted_moves / self._total_steps,
             history=self._history,
         )
@@ -196,6 +207,11 @@ class SAEngine:
     def _iterate(self, temperature: float, step_number: int) -> None:
         """Execute a single SA iteration.
 
+        Displacement may produce disconnected graphs. Instead of discarding
+        them, we keep them and continue applying Faulon operators -- the
+        structure may reconnect after a few moves. Only connected structures
+        are scored and evaluated by Metropolis.
+
         Args:
             temperature: Current temperature (kT)
             step_number: Current step number (1-indexed for display)
@@ -203,11 +219,29 @@ class SAEngine:
         # Attempt displacement
         proposed_graph = attempt_displacement(self._current_graph, self._rng)
 
-        # If displacement returned None, it's invalid
+        # If displacement returned None (equations 10-11 gave no valid range)
         if proposed_graph is None:
             self._invalid_moves += 1
             self._record_step(step_number, temperature, False)
             return
+
+        # Check connectivity before scoring
+        if not proposed_graph.is_connected():
+            # Keep the disconnected structure -- continue applying
+            # Faulon operators in subsequent steps until it reconnects
+            self._current_graph = proposed_graph
+            self._disconnected_moves += 1
+            self._consecutive_disconnected += 1
+            if self._consecutive_disconnected > self._max_consecutive_disconnected:
+                self._max_consecutive_disconnected = self._consecutive_disconnected
+            # Report previous energy (can't score disconnected graph)
+            self._record_step(step_number, temperature, False)
+            return
+
+        # Structure is connected -- check if we just reconnected
+        if self._consecutive_disconnected > 0:
+            self._reconnection_events += 1
+            self._consecutive_disconnected = 0
 
         # Compute energy of proposed graph
         proposed_energy = compute_wiener_index(proposed_graph)

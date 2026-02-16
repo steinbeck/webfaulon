@@ -91,6 +91,10 @@ v2.0 architectural decisions (from research):
 - [Phase 06-02]: Computed acceptance ratio inline in HTML (not a separate backend field)
 - [Phase 06-02]: resyncState() for SSE error recovery via status endpoint
 
+### Roadmap Evolution
+
+- Phase 6.1 inserted after Phase 6: Fix presets and displacement efficiency for unsaturated molecule demo (URGENT)
+
 ### Pending Todos
 
 None.

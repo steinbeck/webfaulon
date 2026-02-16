@@ -96,21 +96,11 @@ class TestBondOrderConstraints:
                         assert 0 <= order <= 3
 
 
-class TestConnectivityAndValenceValidation:
-    """Test connectivity and valence validation"""
+class TestValencePreservation:
+    """Test that Faulon displacement preserves valence (equations 7-9)"""
 
-    def test_only_connected_or_null(self):
-        """200 displacements, result is connected or None"""
-        hexane = MoleculeGraph.create_linear_alkane(6)
-        rng = SeededRandom(888)
-
-        for _ in range(200):
-            result = attempt_displacement(hexane, rng)
-            if result is not None:
-                assert result.is_connected()
-
-    def test_only_valid_valences_or_null(self):
-        """200 displacements, result has valid valences or None"""
+    def test_always_valid_valences(self):
+        """200 displacements, result always has valid valences (Faulon preserves valence)"""
         hexane = MoleculeGraph.create_linear_alkane(6)
         rng = SeededRandom(444)
 
@@ -119,7 +109,7 @@ class TestConnectivityAndValenceValidation:
             if result is not None:
                 assert result.has_valid_valences()
 
-    def test_produces_some_valid_displacements(self):
+    def test_produces_some_displacements(self):
         """At least some displacements succeed on hexane"""
         hexane = MoleculeGraph.create_linear_alkane(6)
         rng = SeededRandom(555)
@@ -132,16 +122,24 @@ class TestConnectivityAndValenceValidation:
 
         assert success_count > 0
 
-    def test_rejects_disconnecting_moves(self):
-        """4-atom chain, all results connected"""
-        butane = MoleculeGraph.create_linear_alkane(4)
-        rng = SeededRandom(666)
+    def test_may_produce_disconnected(self):
+        """Displacement may produce disconnected graphs (SA engine handles reconnection)"""
+        hexane = MoleculeGraph.create_linear_alkane(6)
+        rng = SeededRandom(888)
 
-        for _ in range(100):
-            result = attempt_displacement(butane, rng)
-            # All non-null results must be connected
+        connected_count = 0
+        disconnected_count = 0
+        for _ in range(200):
+            result = attempt_displacement(hexane, rng)
             if result is not None:
-                assert result.is_connected()
+                if result.is_connected():
+                    connected_count += 1
+                else:
+                    disconnected_count += 1
+
+        # Should have both connected and disconnected results
+        assert connected_count > 0
+        assert disconnected_count > 0
 
 
 class TestReproducibility:
@@ -203,7 +201,7 @@ class TestStress500Displacements:
     """Stress test: 500 consecutive displacements"""
 
     def test_stress_500_displacements(self):
-        """500 iterations on hexane, zero invalid molecules, some valid"""
+        """500 iterations on hexane, all preserve valence, some valid"""
         hexane = MoleculeGraph.create_linear_alkane(6)
         rng = SeededRandom(42424242)
 
@@ -211,8 +209,7 @@ class TestStress500Displacements:
         for _ in range(500):
             result = attempt_displacement(hexane, rng)
             if result is not None:
-                # Every valid result must be connected and have valid valences
-                assert result.is_connected()
+                # Faulon preserves valence by construction
                 assert result.has_valid_valences()
                 valid_count += 1
 
@@ -224,7 +221,7 @@ class TestCyclohexaneDisplacement:
     """Test displacement on cyclic structure"""
 
     def test_cyclohexane_displacement(self):
-        """Cyclic structure displacement works"""
+        """Cyclic structure displacement works and preserves valence"""
         cyclohexane = MoleculeGraph.create_cyclohexane()
         rng = SeededRandom(777)
 
@@ -232,7 +229,6 @@ class TestCyclohexaneDisplacement:
         for _ in range(100):
             result = attempt_displacement(cyclohexane, rng)
             if result is not None:
-                assert result.is_connected()
                 assert result.has_valid_valences()
                 success_count += 1
 
@@ -244,14 +240,65 @@ class TestBondConservationEquations:
     """Test that displacement equations produce valid results"""
 
     def test_bond_conservation_equations(self):
-        """4-atom molecule, equations produce valid results"""
+        """4-atom molecule, equations preserve atom count and valence"""
         butane = MoleculeGraph.create_linear_alkane(4)
         rng = SeededRandom(999)
 
         for _ in range(50):
             result = attempt_displacement(butane, rng)
             if result is not None:
-                # Result must satisfy all constraints
+                # Faulon preserves atom count and valence
                 assert result.get_atom_count() == 4
-                assert result.is_connected()
                 assert result.has_valid_valences()
+
+
+class TestUnsaturatedDisplacement:
+    """Test displacement on unsaturated molecules (benzene, naphthalene)."""
+
+    def test_benzene_displacement_no_crash(self):
+        """Displacement on benzene (C6H6) doesn't crash."""
+        from rdkit import Chem
+        mol = Chem.MolFromSmiles('c1ccccc1')
+        graph = MoleculeGraph(mol)
+        rng = SeededRandom(42)
+
+        success_count = 0
+        for _ in range(100):
+            result = attempt_displacement(graph, rng)
+            if result is not None:
+                assert result.get_atom_count() == 6
+                success_count += 1
+
+        assert success_count > 0
+
+    def test_naphthalene_displacement_no_crash(self):
+        """Displacement on naphthalene (C10H8) doesn't crash."""
+        from rdkit import Chem
+        mol = Chem.MolFromSmiles('c1ccc2ccccc2c1')
+        graph = MoleculeGraph(mol)
+        rng = SeededRandom(42)
+
+        success_count = 0
+        for _ in range(100):
+            result = attempt_displacement(graph, rng)
+            if result is not None:
+                assert result.get_atom_count() == 10
+                success_count += 1
+
+        assert success_count > 0
+
+    def test_unsaturated_bond_orders_valid(self):
+        """Bond orders stay in [0, 3] for unsaturated molecules."""
+        from rdkit import Chem
+        mol = Chem.MolFromSmiles('c1ccccc1')
+        graph = MoleculeGraph(mol)
+        rng = SeededRandom(777)
+
+        for _ in range(100):
+            result = attempt_displacement(graph, rng)
+            if result is not None:
+                n = result.get_atom_count()
+                for i in range(n):
+                    for j in range(n):
+                        order = result.get_bond_order(i, j)
+                        assert 0 <= order <= 3

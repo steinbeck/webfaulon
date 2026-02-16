@@ -128,6 +128,15 @@ Plans:
 - [x] 06-01-PLAN.md -- API client infrastructure (types, REST client, SSE wrapper) + SVG molecule renderer + Vite proxy
 - [x] 06-02-PLAN.md -- Rewire app.ts from Web Worker to backend API + SSE, update index.html, human verification
 
+### Phase 06.1: Fix presets and displacement efficiency for unsaturated molecule demo (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Depends on:** Phase 6
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 06.1 to break down)
+
 ### Phase 7: Multi-Component Target Function
 **Goal**: SA optimization supports multiple pluggable scoring components with user-configurable weights
 **Depends on**: Phase 5 (API contract for weights), Phase 6 (end-to-end verification)

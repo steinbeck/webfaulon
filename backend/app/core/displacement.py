@@ -87,10 +87,11 @@ def attempt_displacement(
     """
     Attempt a Faulon displacement on the given graph.
 
-    The key challenge: RDKit validates after EACH bond modification via SanitizeMol.
-    Intermediate states may be invalid even if final state is valid.
-
-    Solution: Apply all 4 bond changes, then validate once at the end.
+    Faulon equations 7-9 preserve valence by construction, so no
+    sanitization is needed after bond changes. Connectivity is NOT
+    checked here -- the SA engine handles disconnected structures
+    by persisting them and continuing to apply operators until
+    reconnection occurs.
 
     Args:
         mol_graph: The molecular graph to displace
@@ -127,19 +128,10 @@ def attempt_displacement(
     # Clone the graph (don't mutate original)
     new_graph = mol_graph.clone()
 
-    # Apply new bond orders
-    # Each set_bond call may fail due to RDKit sanitization
-    try:
-        new_graph.set_bond(x1, y1, new_bonds["b11"])
-        new_graph.set_bond(y1, y2, new_bonds["b12"])
-        new_graph.set_bond(x1, x2, new_bonds["b21"])
-        new_graph.set_bond(x2, y2, new_bonds["b22"])
-    except ValueError:
-        # SanitizeMol failed during bond modification
-        return None
-
-    # Validate result: must be connected and have valid valences
-    if not new_graph.is_connected() or not new_graph.has_valid_valences():
-        return None
+    # Apply new bond orders (no sanitization -- Faulon preserves valence)
+    new_graph.set_bond(x1, y1, new_bonds["b11"])
+    new_graph.set_bond(y1, y2, new_bonds["b12"])
+    new_graph.set_bond(x1, x2, new_bonds["b21"])
+    new_graph.set_bond(x2, y2, new_bonds["b22"])
 
     return new_graph

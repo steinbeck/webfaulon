@@ -48,6 +48,7 @@ def bond_type_to_order(bond_type: BondType) -> int:
         BondType.SINGLE: 1,
         BondType.DOUBLE: 2,
         BondType.TRIPLE: 3,
+        BondType.AROMATIC: 1,  # Safety fallback for Faulon integer orders
     }
 
     if bond_type not in type_map:

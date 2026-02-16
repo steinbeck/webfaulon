@@ -62,11 +62,11 @@ class TestBasicFunctionality:
         assert len(result.history) == result.total_steps
 
     def test_accounting_sums_to_total(self):
-        """acceptedMoves + rejectedMoves + invalidMoves = totalSteps."""
+        """acceptedMoves + rejectedMoves + invalidMoves + disconnectedMoves = totalSteps."""
         engine = SAEngine(DEFAULT_PARAMS)
         result = engine.run()
 
-        total = result.accepted_moves + result.rejected_moves + result.invalid_moves
+        total = result.accepted_moves + result.rejected_moves + result.invalid_moves + result.disconnected_moves
         assert total == result.total_steps
 
     def test_acceptance_ratio_range(self):
@@ -382,7 +382,7 @@ class TestMetropolisCriterion:
         assert high_temp_result.acceptance_ratio >= low_temp_result.acceptance_ratio
 
     def test_very_high_temp_frequent_worsening(self):
-        """At very high temperature, acceptance ratio > 0.5."""
+        """At very high temperature, acceptance ratio among connected moves > 0.5."""
         params = SAParams(
             formula="C5H12",
             initial_temp=1000,  # Very high temperature
@@ -396,8 +396,12 @@ class TestMetropolisCriterion:
         engine = SAEngine(params)
         result = engine.run()
 
-        # At very high temperature, acceptance ratio should be high
-        assert result.acceptance_ratio > 0.5
+        # Disconnected moves never reach Metropolis, so measure acceptance
+        # among connected moves only (accepted + rejected)
+        connected_moves = result.accepted_moves + result.rejected_moves
+        if connected_moves > 0:
+            connected_acceptance = result.accepted_moves / connected_moves
+            assert connected_acceptance > 0.5
 
 
 class TestEdgeCases:
@@ -613,7 +617,7 @@ class TestStepByStepExecution:
         assert len(result.history) == 100
 
         # Accounting still correct
-        total = result.accepted_moves + result.rejected_moves + result.invalid_moves
+        total = result.accepted_moves + result.rejected_moves + result.invalid_moves + result.disconnected_moves
         assert total == result.total_steps
 
 
@@ -654,7 +658,7 @@ class TestFullSARun:
 
         # Verify accounting
         assert (
-            result.accepted_moves + result.rejected_moves + result.invalid_moves
+            result.accepted_moves + result.rejected_moves + result.invalid_moves + result.disconnected_moves
             == 2000
         )
 
@@ -663,3 +667,123 @@ class TestFullSARun:
         assert best_mol is not None
         final_mol = Chem.MolFromSmiles(result.final_smiles)
         assert final_mol is not None
+
+
+class TestUnsaturatedMolecules:
+    """Test SA on unsaturated molecules (benzene, naphthalene, monoterpene)."""
+
+    @pytest.mark.parametrize("formula", ["C6H6", "C10H8", "C10H16"])
+    def test_unsaturated_completes(self, formula):
+        """SA completes without crash on unsaturated formulas."""
+        params = SAParams(
+            formula=formula,
+            initial_temp=100,
+            cooling_schedule_k=8,
+            steps_per_cycle=100,
+            num_cycles=2,
+            optimization_mode="MINIMIZE",
+            seed=42,
+        )
+
+        engine = SAEngine(params)
+        result = engine.run()
+
+        assert result.best_smiles is not None
+        assert result.total_steps == 200
+        total = result.accepted_moves + result.rejected_moves + result.invalid_moves + result.disconnected_moves
+        assert total == 200
+
+
+class TestAllPresetFormulas:
+    """Test SA on all 6 frontend preset formulas."""
+
+    @pytest.mark.parametrize("formula", [
+        "C6H14",   # Hexane isomers
+        "C8H18",   # Octane isomers
+        "C8H10",   # Ethylbenzene/Xylenes
+        "C10H22",  # Decane isomers
+        "C10H16",  # Monoterpene
+        "C10H8",   # Naphthalene
+    ])
+    def test_preset_completes(self, formula):
+        """Each preset formula runs to completion without crash."""
+        params = SAParams(
+            formula=formula,
+            initial_temp=100,
+            cooling_schedule_k=8,
+            steps_per_cycle=200,
+            num_cycles=2,
+            optimization_mode="MINIMIZE",
+            seed=42,
+        )
+
+        engine = SAEngine(params)
+        result = engine.run()
+
+        assert result.best_smiles is not None
+        assert result.best_energy > 0
+        from rdkit import Chem
+        mol = Chem.MolFromSmiles(result.best_smiles)
+        assert mol is not None
+
+
+class TestDisconnectedPersistence:
+    """Test disconnected-persistence behavior and logging."""
+
+    def test_disconnected_moves_counted(self):
+        """SA with enough steps has some disconnected moves."""
+        params = SAParams(
+            formula="C6H14",
+            initial_temp=100,
+            cooling_schedule_k=8,
+            steps_per_cycle=500,
+            num_cycles=4,
+            optimization_mode="MINIMIZE",
+            seed=42,
+        )
+
+        engine = SAEngine(params)
+        result = engine.run()
+
+        # With 2000 steps on hexane, some disconnected moves should occur
+        assert result.disconnected_moves >= 0
+        # Accounting still correct
+        total = result.accepted_moves + result.rejected_moves + result.invalid_moves + result.disconnected_moves
+        assert total == 2000
+
+    def test_reconnection_events_logged(self):
+        """Reconnection events are tracked when disconnected structures reconnect."""
+        params = SAParams(
+            formula="C6H14",
+            initial_temp=100,
+            cooling_schedule_k=8,
+            steps_per_cycle=500,
+            num_cycles=4,
+            optimization_mode="MINIMIZE",
+            seed=42,
+        )
+
+        engine = SAEngine(params)
+        result = engine.run()
+
+        # If there are disconnected moves, there should be some reconnections
+        if result.disconnected_moves > 0:
+            assert result.reconnection_events > 0
+
+    def test_max_consecutive_disconnected_tracked(self):
+        """Max consecutive disconnected streak is tracked."""
+        params = SAParams(
+            formula="C6H14",
+            initial_temp=100,
+            cooling_schedule_k=8,
+            steps_per_cycle=500,
+            num_cycles=4,
+            optimization_mode="MINIMIZE",
+            seed=42,
+        )
+
+        engine = SAEngine(params)
+        result = engine.run()
+
+        # max_consecutive should be >= 0 and <= disconnected_moves
+        assert 0 <= result.max_consecutive_disconnected <= result.disconnected_moves

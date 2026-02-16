@@ -125,11 +125,11 @@ class MoleculeGraph:
                 # Update existing bond
                 bond.SetBondType(bond_type)
 
-        # CRITICAL: Sanitize after modification
-        try:
-            Chem.SanitizeMol(self._mol)
-        except Exception as e:
-            raise ValueError(f"Sanitization failed after bond modification: {e}")
+        # No sanitization needed: Faulon displacement (equations 7-9)
+        # preserves valence by construction. Skipping SanitizeMol also
+        # avoids RDKit aromaticity perception converting SINGLE/DOUBLE
+        # bonds to AROMATIC type, which is incompatible with integer
+        # bond orders required by displacement.
 
     # Validation
     def is_connected(self) -> bool:
