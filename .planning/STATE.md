@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 Phase: 4 of 8 (Backend Core & RDKit Foundation)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-02-15 -- v2.0 roadmap created (5 phases, 26 requirements mapped)
+Plan: 1 of 4 in current phase
+Status: Executing
+Last activity: 2026-02-16 -- Completed 04-02 (Pure Python Utilities TDD Port)
 
-Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 0/? v2.0
+Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 1/4 v2.0 Phase 4
 
 ## Performance Metrics
 
@@ -30,6 +30,12 @@ Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 
 | 2. Browser Integration | 3 | Complete |
 | 3. Visualization & UX | 3 | Complete |
 | 3.1. README & Deploy | 2 | Complete |
+
+**By Phase (v2.0):**
+
+| Phase | Plan | Duration | Tasks | Files |
+|-------|------|----------|-------|-------|
+| 04 | 02 | 280s (4m) | 2 | 10 |
 
 ## Accumulated Context
 
@@ -48,6 +54,8 @@ v2.0 architectural decisions (from research):
 - BackgroundTasks for SA execution (not Celery/Redis -- YAGNI)
 - In-memory dict for session state (not database -- ephemeral classroom use)
 - Monorepo: backend/ and frontend/ as sibling directories
+- [Phase 04-02]: Use pip for pytest instead of Poetry (not available in environment)
+- [Phase 04-02]: Emulate JavaScript Math.imul with signed 32-bit conversion for cross-language determinism
 
 ### Pending Todos
 
@@ -60,6 +68,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-02-15
-Stopped at: v2.0 roadmap created, ready to plan Phase 4
+Last session: 2026-02-16
+Stopped at: Completed 04-02-PLAN.md (Pure Python Utilities TDD Port)
 Resume file: None
