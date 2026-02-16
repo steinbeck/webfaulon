@@ -71,7 +71,7 @@ Plans:
 **Milestone Goal:** Re-architect from browser-only to FastAPI backend with Python RDKit, enabling full cheminformatics capabilities and a multi-component target function framework.
 
 - [x] **Phase 4: Backend Core & RDKit Foundation** - FastAPI app with Python SA engine operating on native RDKit molecules
-- [ ] **Phase 5: API Layer & SSE Streaming** - REST endpoints, session management, and live progress streaming
+- [x] **Phase 5: API Layer & SSE Streaming** - REST endpoints, session management, and live progress streaming
 - [ ] **Phase 6: Frontend Integration** - Rewire frontend from Web Worker to backend API + SSE
 - [ ] **Phase 7: Multi-Component Target Function** - Pluggable scoring framework with weighted components
 - [ ] **Phase 8: Deployment & Production** - Cloud deployment with production configuration
@@ -109,9 +109,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01-PLAN.md -- SessionManager + SVG renderer services with TDD
-- [ ] 05-02-PLAN.md -- REST endpoints (configure, control, status) + main.py wiring + API tests
-- [ ] 05-03-PLAN.md -- SSE stream endpoint + end-to-end integration tests
+- [x] 05-01-PLAN.md -- SessionManager + SVG renderer services with TDD
+- [x] 05-02-PLAN.md -- REST endpoints (configure, control, status) + main.py wiring + API tests
+- [x] 05-03-PLAN.md -- SSE stream endpoint + end-to-end integration tests
 
 ### Phase 6: Frontend Integration
 **Goal**: Frontend communicates entirely through backend API and SSE, delivering the same UX as v1.0 without Web Workers or RDKit.js WASM
@@ -165,7 +165,7 @@ Phases execute in numeric order: 4 -> 5 -> 6 -> 7 -> 8
 | 3. Visualization & UX | v1.0 | 3/3 | Complete | 2026-02-15 |
 | 3.1. README & GitHub Pages | v1.0 | 2/2 | Complete | 2026-02-15 |
 | 4. Backend Core & RDKit Foundation | v2.0 | 4/4 | Complete | 2026-02-16 |
-| 5. API Layer & SSE Streaming | v2.0 | 0/? | Not started | - |
+| 5. API Layer & SSE Streaming | v2.0 | 3/3 | Complete | 2026-02-16 |
 | 6. Frontend Integration | v2.0 | 0/? | Not started | - |
 | 7. Multi-Component Target Function | v2.0 | 0/? | Not started | - |
 | 8. Deployment & Production | v2.0 | 0/? | Not started | - |
@@ -176,3 +176,5 @@ Phases execute in numeric order: 4 -> 5 -> 6 -> 7 -> 8
 *v2.0 phases added: 2026-02-15*
 *Phase 4 planned: 2026-02-16*
 *Phase 4 executed: 2026-02-16*
+*Phase 5 planned: 2026-02-16*
+*Phase 5 executed: 2026-02-16*

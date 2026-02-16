@@ -5,7 +5,7 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time -- making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** v2.0 Phase 4 -- Backend Core & RDKit Foundation
+**Current focus:** v2.0 Phase 5 -- API Layer & SSE Streaming (Complete)
 
 ## Current Position
 
