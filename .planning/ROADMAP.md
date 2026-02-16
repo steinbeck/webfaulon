@@ -158,10 +158,11 @@ Plans:
   1. Backend is running on a cloud platform (Railway/Render/Fly.io) and responds to health check requests from the internet
   2. Frontend at the production URL (GitHub Pages) successfully connects to the deployed backend and runs an SA optimization
   3. CORS is locked to the production domain -- requests from unauthorized origins are rejected
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: TBD
+- [ ] 08-01-PLAN.md -- Backend requirements.txt + frontend VITE_API_URL configuration
+- [ ] 08-02-PLAN.md -- Render deployment, CORS verification, end-to-end production test
 
 ## Progress
 
