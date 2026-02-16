@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time -- making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** v2.0 Phase 6 -- Frontend Integration (In Progress)
+**Current focus:** v2.0 Phase 6 -- Frontend Integration (Complete)
 
 ## Current Position
 
 Phase: 6 of 8 (Frontend Integration)
-Plan: 1 of 2 in current phase
-Status: In Progress
-Last activity: 2026-02-16 -- Completed 06-01 (API Client Infrastructure)
+Plan: 2 of 2 in current phase
+Status: Complete
+Last activity: 2026-02-16 -- Completed 06-02 (Frontend Rewiring + E2E Verification)
 
-Progress: [##################░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 1/2 v2.0 Phase 6 complete
+Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete
 
 ## Performance Metrics
 
@@ -43,6 +43,7 @@ Progress: [##################░░░░░░] 12/12 v1.0 plans complete, 4/4 
 | 05 | 02 | 116s (1m 56s) | 2 | 7 |
 | 05 | 03 | 461s (7m 41s) | 2 | 3 |
 | 06 | 01 | 144s (2m 24s) | 2 | 5 |
+| 06 | 02 | ~300s (5m) | 2 | 2 |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ v2.0 architectural decisions (from research):
 - [Phase 06-01]: SSE wrapper auto-closes on complete event to prevent EventSource leaks
 - [Phase 06-01]: SVG rendering via innerHTML replaces RDKit.js WASM canvas (backend generates SVG)
 - [Phase 06-01]: Vite proxy handles /api routing without URL rewriting (backend already serves /api/sa/*)
+- [Phase 06-02]: Module-level apiClient/sseConnection outside Alpine reactive scope (same pattern as v1.0 worker refs)
+- [Phase 06-02]: Computed acceptance ratio inline in HTML (not a separate backend field)
+- [Phase 06-02]: resyncState() for SSE error recovery via status endpoint
 
 ### Pending Todos
 
@@ -99,5 +103,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 06-01-PLAN.md (API Client Infrastructure)
+Stopped at: Phase 6 complete, Phase 7 next
 Resume file: None

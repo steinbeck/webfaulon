@@ -72,7 +72,7 @@ Plans:
 
 - [x] **Phase 4: Backend Core & RDKit Foundation** - FastAPI app with Python SA engine operating on native RDKit molecules
 - [x] **Phase 5: API Layer & SSE Streaming** - REST endpoints, session management, and live progress streaming
-- [ ] **Phase 6: Frontend Integration** - Rewire frontend from Web Worker to backend API + SSE
+- [x] **Phase 6: Frontend Integration** - Rewire frontend from Web Worker to backend API + SSE
 - [ ] **Phase 7: Multi-Component Target Function** - Pluggable scoring framework with weighted components
 - [ ] **Phase 8: Deployment & Production** - Cloud deployment with production configuration
 
@@ -125,8 +125,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md -- API client infrastructure (types, REST client, SSE wrapper) + SVG molecule renderer + Vite proxy
-- [ ] 06-02-PLAN.md -- Rewire app.ts from Web Worker to backend API + SSE, update index.html, human verification
+- [x] 06-01-PLAN.md -- API client infrastructure (types, REST client, SSE wrapper) + SVG molecule renderer + Vite proxy
+- [x] 06-02-PLAN.md -- Rewire app.ts from Web Worker to backend API + SSE, update index.html, human verification
 
 ### Phase 7: Multi-Component Target Function
 **Goal**: SA optimization supports multiple pluggable scoring components with user-configurable weights
@@ -166,7 +166,7 @@ Phases execute in numeric order: 4 -> 5 -> 6 -> 7 -> 8
 | 3.1. README & GitHub Pages | v1.0 | 2/2 | Complete | 2026-02-15 |
 | 4. Backend Core & RDKit Foundation | v2.0 | 4/4 | Complete | 2026-02-16 |
 | 5. API Layer & SSE Streaming | v2.0 | 3/3 | Complete | 2026-02-16 |
-| 6. Frontend Integration | v2.0 | 0/? | Not started | - |
+| 6. Frontend Integration | v2.0 | 2/2 | Complete | 2026-02-16 |
 | 7. Multi-Component Target Function | v2.0 | 0/? | Not started | - |
 | 8. Deployment & Production | v2.0 | 0/? | Not started | - |
 
@@ -178,3 +178,5 @@ Phases execute in numeric order: 4 -> 5 -> 6 -> 7 -> 8
 *Phase 4 executed: 2026-02-16*
 *Phase 5 planned: 2026-02-16*
 *Phase 5 executed: 2026-02-16*
+*Phase 6 planned: 2026-02-16*
+*Phase 6 executed: 2026-02-16*
