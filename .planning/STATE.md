@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 Phase: 4 of 8 (Backend Core & RDKit Foundation)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: Executing
-Last activity: 2026-02-16 -- Completed 04-01 (FastAPI Backend Scaffold)
+Last activity: 2026-02-16 -- Completed 04-03 (RDKit Molecular Operations)
 
-Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 2/4 v2.0 Phase 4
+Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 3/4 v2.0 Phase 4
 
 ## Performance Metrics
 
@@ -37,6 +37,7 @@ Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 
 |-------|------|----------|-------|-------|
 | 04 | 01 | 340s (5m 40s) | 2 | 9 |
 | 04 | 02 | 280s (4m 40s) | 2 | 10 |
+| 04 | 03 | 347s (5m 47s) | 2 | 9 |
 
 ## Accumulated Context
 
@@ -61,6 +62,9 @@ v2.0 architectural decisions (from research):
 - [Phase 04-01]: StarletteHTTPException handler needed to catch default 404 responses
 - [Phase 04-02]: Use pip for pytest instead of Poetry (not available in environment)
 - [Phase 04-02]: Emulate JavaScript Math.imul with signed 32-bit conversion for cross-language determinism
+- [Phase 04-03]: Wrap RDKit RWMol instead of pure adjacency matrix for automatic valence validation
+- [Phase 04-03]: Call SanitizeMol after every bond modification for chemical correctness
+- [Phase 04-03]: Use RDKit GetDistanceMatrix for Wiener Index instead of custom BFS
 
 ### Pending Todos
 
@@ -68,11 +72,11 @@ None.
 
 ### Blockers/Concerns
 
-- Faulon displacement on RDKit RWMol has no existing implementation -- validate against v1.0 test suite once ported
+- ~~Faulon displacement on RDKit RWMol has no existing implementation -- validate against v1.0 test suite once ported~~ **RESOLVED: 500-displacement stress test produces zero invalid molecules, all Wiener Index values match v1.0**
 - Offline usage regression: v2.0 requires backend connection (v1.0 works offline)
 
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 04-01-PLAN.md (FastAPI Backend Scaffold)
+Stopped at: Completed 04-03-PLAN.md (RDKit Molecular Operations)
 Resume file: None
