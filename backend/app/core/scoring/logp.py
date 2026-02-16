@@ -1,5 +1,6 @@
 """LogP (partition coefficient) scoring component."""
 from app.core.molecule import MoleculeGraph
+from rdkit import Chem
 from rdkit.Chem import Descriptors
 
 
@@ -25,4 +26,7 @@ class LogPComponent:
             LogP value (dimensionless partition coefficient)
         """
         mol = mol_graph.get_mol()
+        # Ensure implicit valences are calculated (required by MolLogP)
+        mol.UpdatePropertyCache(strict=False)
+        Chem.SanitizeMol(mol, Chem.SANITIZE_ALL ^ Chem.SANITIZE_KEKULIZE)
         return Descriptors.MolLogP(mol)

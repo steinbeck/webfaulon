@@ -4,8 +4,8 @@ Pydantic models for Simulated Annealing parameters and results.
 These models define the API contract for SA engine configuration and output.
 """
 
-from pydantic import BaseModel, Field
-from typing import Literal
+from pydantic import BaseModel, Field, field_validator
+from typing import Dict, Literal
 
 
 class SAParams(BaseModel):
@@ -26,6 +26,29 @@ class SAParams(BaseModel):
     num_cycles: int = Field(4, gt=0, description="Number of cooling cycles")
     optimization_mode: Literal["MINIMIZE", "MAXIMIZE"] = "MINIMIZE"
     seed: int = Field(42, description="Random seed for reproducibility")
+    component_weights: Dict[str, float] = Field(
+        default_factory=lambda: {"wiener_index": 1.0},
+        description="Weights for scoring components"
+    )
+
+    @field_validator("component_weights")
+    @classmethod
+    def validate_weights(cls, v: Dict[str, float]) -> Dict[str, float]:
+        """Validate component_weights field.
+
+        Ensures:
+        - At least one component is specified
+        - No negative weights
+        - At least one non-zero weight
+        """
+        if not v:
+            raise ValueError("At least one component weight must be specified")
+        for name, weight in v.items():
+            if weight < 0:
+                raise ValueError(f"Component '{name}' has negative weight: {weight}")
+        if all(w == 0.0 for w in v.values()):
+            raise ValueError("At least one component weight must be non-zero")
+        return v
 
 
 class SAStepResult(BaseModel):

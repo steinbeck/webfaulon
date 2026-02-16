@@ -2,8 +2,10 @@
 Simulated Annealing Engine for molecular graph optimization.
 
 Implements the SA algorithm from Faulon's 1996 paper (Table 2).
-Optimizes Wiener Index by iteratively applying displacement operations
-with Metropolis acceptance criterion.
+Optimizes multi-component scoring functions by iteratively applying
+displacement operations with Metropolis acceptance criterion.
+
+Supports pluggable scoring components via the scoring registry.
 """
 
 import math
@@ -12,10 +14,10 @@ from typing import Optional
 from app.models.sa_params import SAParams, SAResult, SAStepResult, SAEngineState
 from app.core.molecule import MoleculeGraph
 from app.core.initial_structure import generate_initial_structure
-from app.core.wiener import compute_wiener_index
 from app.core.displacement import attempt_displacement
 from app.core.random import SeededRandom
 from app.core.cooling import compute_temperature
+from app.core.scoring.registry import get_registry
 
 
 class SAEngine:
@@ -39,9 +41,25 @@ class SAEngine:
 
         Args:
             params: Simulated annealing configuration parameters
+
+        Raises:
+            ValueError: If component_weights contains unknown component names
         """
         self._params = params
         self._rng = SeededRandom(params.seed)
+
+        # Load scoring component registry and validate requested components
+        registry = get_registry()
+        available = set(registry.list_components())
+        requested = set(params.component_weights.keys())
+        unknown = requested - available
+        if unknown:
+            raise ValueError(
+                f"Unknown scoring component(s): {unknown}. "
+                f"Available: {sorted(available)}"
+            )
+        self._component_weights = params.component_weights
+        self._registry = registry
 
         # These are set in init()
         self._current_graph: Optional[MoleculeGraph] = None
@@ -60,6 +78,24 @@ class SAEngine:
         self._initialized: bool = False
         self._completed: bool = False
 
+    def _compute_energy(self, mol_graph: MoleculeGraph) -> float:
+        """Compute weighted sum of scoring component contributions.
+
+        Args:
+            mol_graph: Molecule graph to score
+
+        Returns:
+            Total energy as weighted sum of component scores
+        """
+        total_energy = 0.0
+        for component_name, weight in self._component_weights.items():
+            if weight == 0.0:
+                continue
+            component = self._registry.get(component_name)
+            score = component.compute(mol_graph)
+            total_energy += weight * score
+        return total_energy
+
     def init(self) -> None:
         """Initialize the SA engine for step-by-step execution.
 
@@ -68,7 +104,7 @@ class SAEngine:
         """
         # Generate initial structure
         self._current_graph = generate_initial_structure(self._params.formula)
-        self._current_energy = compute_wiener_index(self._current_graph)
+        self._current_energy = self._compute_energy(self._current_graph)
         self._initial_energy = self._current_energy
         self._best_graph = self._current_graph.clone()
         self._best_energy = self._current_energy
@@ -223,7 +259,7 @@ class SAEngine:
             return
 
         # Compute energy of proposed graph
-        proposed_energy = compute_wiener_index(proposed_graph)
+        proposed_energy = self._compute_energy(proposed_graph)
 
         # Compute energy delta based on optimization mode
         # For MINIMIZE: positive delta = worsening move

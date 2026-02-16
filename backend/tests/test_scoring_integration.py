@@ -134,10 +134,10 @@ class TestSAEngineWeightedEnergy:
 
         # Linear hexane has Wiener Index of 35
         assert result.initial_energy == 35
-        # Verify accounting sums to total steps
+        # Verify accounting sums to total steps (including disconnected)
         total_steps = 100 * 2
         assert (result.accepted_moves + result.rejected_moves +
-                result.invalid_moves) == total_steps
+                result.invalid_moves + result.disconnected_moves) == total_steps
 
 
 class TestSAEngineValidation:
@@ -192,7 +192,7 @@ class TestSAEngineBackwardCompatibility:
         assert result.best_smiles is not None
         total_steps = 100 * 2
         assert (result.accepted_moves + result.rejected_moves +
-                result.invalid_moves) == total_steps
+                result.invalid_moves + result.disconnected_moves) == total_steps
 
     def test_run_completes_with_multi_component(self):
         """Full SA run with multiple components completes successfully."""
@@ -213,10 +213,10 @@ class TestSAEngineBackwardCompatibility:
         assert result.best_smiles is not None
         assert Chem.MolFromSmiles(result.best_smiles) is not None
 
-        # Verify accounting
+        # Verify accounting (including disconnected moves)
         total_steps = 100 * 2
         assert (result.accepted_moves + result.rejected_moves +
-                result.invalid_moves) == total_steps
+                result.invalid_moves + result.disconnected_moves) == total_steps
 
         # Verify acceptance ratio is in valid range
         acceptance_ratio = result.accepted_moves / total_steps
