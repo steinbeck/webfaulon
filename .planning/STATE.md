@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time -- making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** v2.0 Phase 5 -- API Layer & SSE Streaming (Complete)
+**Current focus:** v2.0 Phase 6 -- Frontend Integration (In Progress)
 
 ## Current Position
 
-Phase: 5 of 8 (API Layer & SSE Streaming)
-Plan: 3 of 3 in current phase
-Status: Complete
-Last activity: 2026-02-16 -- Completed 05-03 (SSE Streaming Endpoint)
+Phase: 6 of 8 (Frontend Integration)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-02-16 -- Completed 06-01 (API Client Infrastructure)
 
-Progress: [##################░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete
+Progress: [##################░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 1/2 v2.0 Phase 6 complete
 
 ## Performance Metrics
 
@@ -42,6 +42,7 @@ Progress: [##################░░░░░░] 12/12 v1.0 plans complete, 4/4 
 | 05 | 01 | 192s (3m 12s) | 2 | 5 |
 | 05 | 02 | 116s (1m 56s) | 2 | 7 |
 | 05 | 03 | 461s (7m 41s) | 2 | 3 |
+| 06 | 01 | 144s (2m 24s) | 2 | 5 |
 
 ## Accumulated Context
 
@@ -81,6 +82,10 @@ v2.0 architectural decisions (from research):
 - [Phase 05-03]: asyncio.sleep(0.01) yields control between steps (~100 events/sec throttling)
 - [Phase 05-03]: Waiting heartbeat every ~1s during pause/idle keeps connection alive
 - [Phase 05-03]: X-Accel-Buffering: no header for nginx real-time delivery
+- [Phase 06-01]: Use snake_case in TypeScript types to match FastAPI JSON exactly (no camelCase conversion)
+- [Phase 06-01]: SSE wrapper auto-closes on complete event to prevent EventSource leaks
+- [Phase 06-01]: SVG rendering via innerHTML replaces RDKit.js WASM canvas (backend generates SVG)
+- [Phase 06-01]: Vite proxy handles /api routing without URL rewriting (backend already serves /api/sa/*)
 
 ### Pending Todos
 
@@ -94,5 +99,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 05-03-PLAN.md (SSE Streaming Endpoint) -- Phase 05 complete
+Stopped at: Completed 06-01-PLAN.md (API Client Infrastructure)
 Resume file: None
