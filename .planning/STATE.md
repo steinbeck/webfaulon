@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 Phase: 5 of 8 (API Layer & SSE Streaming)
-Plan: 2 of 3 in current phase
-Status: In Progress
-Last activity: 2026-02-16 -- Completed 05-02 (SA REST API Endpoints)
+Plan: 3 of 3 in current phase
+Status: Complete
+Last activity: 2026-02-16 -- Completed 05-03 (SSE Streaming Endpoint)
 
-Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 2/3 v2.0 Phase 5 in progress
+Progress: [##################░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete
 
 ## Performance Metrics
 
@@ -41,6 +41,7 @@ Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 
 | 04 | 04 | 251s (4m 11s) | 2 | 3 |
 | 05 | 01 | 192s (3m 12s) | 2 | 5 |
 | 05 | 02 | 116s (1m 56s) | 2 | 7 |
+| 05 | 03 | 461s (7m 41s) | 2 | 3 |
 
 ## Accumulated Context
 
@@ -76,6 +77,10 @@ v2.0 architectural decisions (from research):
 - [Phase 05-02]: Shared SessionManager singleton via dependencies.py (simpler than FastAPI app.state)
 - [Phase 05-02]: 5-minute periodic cleanup interval (balance between memory usage and overhead)
 - [Phase 05-02]: Status endpoint includes SVG inline (not separate endpoint, simplifies client)
+- [Phase 05-03]: SA steps run inside SSE generator (not BackgroundTasks) for pause/resume control
+- [Phase 05-03]: asyncio.sleep(0.01) yields control between steps (~100 events/sec throttling)
+- [Phase 05-03]: Waiting heartbeat every ~1s during pause/idle keeps connection alive
+- [Phase 05-03]: X-Accel-Buffering: no header for nginx real-time delivery
 
 ### Pending Todos
 
@@ -89,5 +94,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 05-02-PLAN.md (SA REST API Endpoints)
+Stopped at: Completed 05-03-PLAN.md (SSE Streaming Endpoint) -- Phase 05 complete
 Resume file: None
