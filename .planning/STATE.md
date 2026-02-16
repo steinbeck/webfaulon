@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time -- making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** v2.0 Phase 6 -- Frontend Integration (Complete)
+**Current focus:** v2.0 Phase 7 -- Multi-Component Target Function (In Progress)
 
 ## Current Position
 
-Phase: 6 of 8 (Frontend Integration)
-Plan: 2 of 2 in current phase
+Phase: 7 of 8 (Multi-Component Target Function)
+Plan: 1 of 2 in current phase
 Status: Complete
-Last activity: 2026-02-16 -- Completed 06-02 (Frontend Rewiring + E2E Verification)
+Last activity: 2026-02-16 -- Completed 07-01 (Scoring Component Framework)
 
-Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete
+Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete, 1/2 v2.0 Phase 7 in progress
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@ Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0
 | 05 | 03 | 461s (7m 41s) | 2 | 3 |
 | 06 | 01 | 144s (2m 24s) | 2 | 5 |
 | 06 | 02 | ~300s (5m) | 2 | 2 |
+| 07 | 01 | 147s (2m 27s) | 2 | 6 |
 
 ## Accumulated Context
 
@@ -90,6 +91,9 @@ v2.0 architectural decisions (from research):
 - [Phase 06-02]: Module-level apiClient/sseConnection outside Alpine reactive scope (same pattern as v1.0 worker refs)
 - [Phase 06-02]: Computed acceptance ratio inline in HTML (not a separate backend field)
 - [Phase 06-02]: resyncState() for SSE error recovery via status endpoint
+- [Phase 07-01]: Replace MolecularWeightComponent with LogPComponent (MW constant across isomers, LogP varies)
+- [Phase 07-01]: Protocol-based polymorphism using @runtime_checkable for duck-typed component interface
+- [Phase 07-01]: Singleton ComponentRegistry pattern with helpful error messages listing available components
 
 ### Roadmap Evolution
 
@@ -107,5 +111,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Phase 6 complete, Phase 7 next
+Stopped at: Completed 07-01 (Scoring Component Framework)
 Resume file: None
