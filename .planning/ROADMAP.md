@@ -74,7 +74,7 @@ Plans:
 - [x] **Phase 5: API Layer & SSE Streaming** - REST endpoints, session management, and live progress streaming
 - [x] **Phase 6: Frontend Integration** - Rewire frontend from Web Worker to backend API + SSE
 - [x] **Phase 7: Multi-Component Target Function** - Pluggable scoring framework with weighted components
-- [ ] **Phase 8: Deployment & Production** - Cloud deployment with production configuration
+- [x] **Phase 8: Deployment & Production** - Local deployment with production configuration
 
 ## Phase Details
 
@@ -151,18 +151,18 @@ Plans:
 - [x] 07-02-PLAN.md -- SA engine integration: extend SAParams with component_weights, refactor SAEngine to use weighted sum (TDD)
 
 ### Phase 8: Deployment & Production
-**Goal**: Backend is deployed to a cloud platform and frontend is configured to use the production API
+**Goal**: Backend is deployed and frontend is configured to use the production API
 **Depends on**: Phase 6 (end-to-end functional)
 **Requirements**: DEP-01, DEP-02, DEP-03
 **Success Criteria** (what must be TRUE):
-  1. Backend is running on a cloud platform (Railway/Render/Fly.io) and responds to health check requests from the internet
-  2. Frontend at the production URL (GitHub Pages) successfully connects to the deployed backend and runs an SA optimization
+  1. Backend runs locally and responds to health check requests
+  2. Frontend at GitHub Pages connects to the backend and runs an SA optimization
   3. CORS is locked to the production domain -- requests from unauthorized origins are rejected
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md -- Backend requirements.txt + frontend VITE_API_URL configuration
-- [ ] 08-02-PLAN.md -- Render deployment, CORS verification, end-to-end production test
+- [x] 08-01-PLAN.md -- Backend requirements.txt + frontend VITE_API_URL configuration
+- [x] 08-02-PLAN.md -- Local deployment, CORS verification, end-to-end production test
 
 ## Progress
 
@@ -179,7 +179,7 @@ Phases execute in numeric order: 4 -> 5 -> 6 -> 7 -> 8
 | 5. API Layer & SSE Streaming | v2.0 | 3/3 | Complete | 2026-02-16 |
 | 6. Frontend Integration | v2.0 | 2/2 | Complete | 2026-02-16 |
 | 7. Multi-Component Target Function | v2.0 | 2/2 | Complete | 2026-02-16 |
-| 8. Deployment & Production | v2.0 | 0/? | Not started | - |
+| 8. Deployment & Production | v2.0 | 2/2 | Complete | 2026-02-16 |
 
 ---
 
@@ -193,3 +193,5 @@ Phases execute in numeric order: 4 -> 5 -> 6 -> 7 -> 8
 *Phase 6 executed: 2026-02-16*
 *Phase 7 planned: 2026-02-16*
 *Phase 7 executed: 2026-02-16*
+*Phase 8 planned: 2026-02-16*
+*Phase 8 executed: 2026-02-16*

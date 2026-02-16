@@ -5,16 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-02-15)
 
 **Core value:** Students can see and interact with the SA algorithm exploring constitutional isomer space in real time -- making the abstract algorithm from the paper tangible and intuitive.
-**Current focus:** v2.0 Phase 8 -- Deployment & Production (In Progress)
+**Current focus:** v2.0 Phase 8 -- Deployment & Production (Complete)
 
 ## Current Position
 
 Phase: 8 of 8 (Deployment & Production)
-Plan: 1 of 2 in current phase
+Plan: 2 of 2 in current phase
 Status: Complete
-Last activity: 2026-02-16 -- Completed 08-01 (Production Configuration)
+Last activity: 2026-02-16 -- Completed 08-02 (Local Deployment & CORS Verification)
 
-Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete, 2/2 v2.0 Phase 7 complete, 1/2 v2.0 Phase 8 complete
+Progress: [########################] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 3/3 v2.0 Phase 5 complete, 2/2 v2.0 Phase 6 complete, 2/2 v2.0 Phase 7 complete, 2/2 v2.0 Phase 8 complete
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Progress: [####################░░░░] 12/12 v1.0 plans complete, 4/4 v2.0
 | 07 | 01 | 147s (2m 27s) | 2 | 6 |
 | 07 | 02 | 186s (3m 6s) | 2 | 4 |
 | 08 | 01 | 102s (1m 42s) | 2 | 6 |
+| 08 | 02 | manual | 2 | 1 |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ v2.0 architectural decisions (from research):
 - [Phase 08-01]: VITE_API_URL environment variable for build-time backend URL injection
 - [Phase 08-01]: .env.production committed to repo (Vite convention), .env excluded via gitignore
 - [Phase 08-01]: Conditional URL construction with fallback to relative paths preserves dev workflow
+- [Phase 08-02]: Local deployment instead of Render — backend runs on user's machine, no cloud PaaS needed
+- [Phase 08-02]: .env.production points to http://localhost:8000 (browsers allow HTTP to localhost from HTTPS pages)
 
 ### Roadmap Evolution
 
@@ -121,5 +124,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 08-01 (Production Configuration) - Phase 8 Plan 1 Complete
+Stopped at: Completed 08-02 (Local Deployment) - Phase 8 Complete - v2.0 Milestone Complete
 Resume file: None
