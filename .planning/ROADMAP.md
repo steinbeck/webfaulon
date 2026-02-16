@@ -144,10 +144,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. SA engine evaluates a weighted sum of multiple scoring components (Wiener Index as default, framework accepts additional components)
   2. Each component contributes an independently computed score that is combined via configurable weights into the overall objective
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: TBD
+- [ ] 07-01-PLAN.md -- Scoring component framework: Protocol, WienerIndexComponent, MolecularWeightComponent, ComponentRegistry (TDD)
+- [ ] 07-02-PLAN.md -- SA engine integration: extend SAParams with component_weights, refactor SAEngine to use weighted sum (TDD)
 
 ### Phase 8: Deployment & Production
 **Goal**: Backend is deployed to a cloud platform and frontend is configured to use the production API
