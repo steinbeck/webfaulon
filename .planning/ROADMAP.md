@@ -106,11 +106,12 @@ Plans:
   3. Server remains responsive to `/health` requests while an SA optimization is running in the background
   4. Reconnecting to the status endpoint after a disconnect returns the current SA state (step, best score, best molecule)
   5. Idle sessions are automatically cleaned up after TTL expiration
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01-PLAN.md -- SessionManager + SVG renderer services with TDD
+- [ ] 05-02-PLAN.md -- REST endpoints (configure, control, status) + main.py wiring + API tests
+- [ ] 05-03-PLAN.md -- SSE stream endpoint + end-to-end integration tests
 
 ### Phase 6: Frontend Integration
 **Goal**: Frontend communicates entirely through backend API and SSE, delivering the same UX as v1.0 without Web Workers or RDKit.js WASM
