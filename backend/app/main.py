@@ -4,6 +4,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import Settings
 from app.models.errors import ErrorResponse
@@ -36,9 +37,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Handle HTTP exceptions with structured ErrorResponse (catches default 404s)."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=ErrorResponse(
+            error=exc.detail or "HTTP Error",
+            detail=None,
+            status_code=exc.status_code,
+        ).model_dump(),
+    )
+
+
 @app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """Handle HTTP exceptions with structured ErrorResponse."""
+async def fastapi_http_exception_handler(request: Request, exc: HTTPException):
+    """Handle FastAPI HTTP exceptions with structured ErrorResponse."""
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
