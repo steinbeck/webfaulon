@@ -10,11 +10,11 @@ See: .planning/PROJECT.md (updated 2026-02-15)
 ## Current Position
 
 Phase: 5 of 8 (API Layer & SSE Streaming)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-02-16 -- Completed 05-01 (SessionManager and SVG Renderer Services)
+Last activity: 2026-02-16 -- Completed 05-02 (SA REST API Endpoints)
 
-Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 1/3 v2.0 Phase 5 in progress
+Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 4/4 v2.0 Phase 4 complete, 2/3 v2.0 Phase 5 in progress
 
 ## Performance Metrics
 
@@ -40,6 +40,7 @@ Progress: [################░░░░░░░░] 12/12 v1.0 plans complete, 
 | 04 | 03 | 347s (5m 47s) | 2 | 9 |
 | 04 | 04 | 251s (4m 11s) | 2 | 3 |
 | 05 | 01 | 192s (3m 12s) | 2 | 5 |
+| 05 | 02 | 116s (1m 56s) | 2 | 7 |
 
 ## Accumulated Context
 
@@ -72,6 +73,9 @@ v2.0 architectural decisions (from research):
 - [Phase 04-04]: Use Pydantic v2 models for SA parameters/results for type safety and auto-validation
 - [Phase 05-01]: Use UUID strings for session IDs (standard, secure, collision-resistant)
 - [Phase 05-01]: Manual TTL cleanup (cleanup_expired()) not automatic to avoid background threads (YAGNI)
+- [Phase 05-02]: Shared SessionManager singleton via dependencies.py (simpler than FastAPI app.state)
+- [Phase 05-02]: 5-minute periodic cleanup interval (balance between memory usage and overhead)
+- [Phase 05-02]: Status endpoint includes SVG inline (not separate endpoint, simplifies client)
 
 ### Pending Todos
 
@@ -85,5 +89,5 @@ None.
 ## Session Continuity
 
 Last session: 2026-02-16
-Stopped at: Completed 05-01-PLAN.md (SessionManager and SVG Renderer Services)
+Stopped at: Completed 05-02-PLAN.md (SA REST API Endpoints)
 Resume file: None
