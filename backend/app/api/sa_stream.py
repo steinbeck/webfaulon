@@ -67,6 +67,7 @@ async def stream_progress(session_id: str, request: Request):
                                 "accepted_moves": state.accepted_moves,
                                 "rejected_moves": state.rejected_moves,
                                 "invalid_moves": state.invalid_moves,
+                                "disconnected_moves": state.disconnected_moves,
                             })
                         }
                         break
@@ -93,6 +94,7 @@ async def stream_progress(session_id: str, request: Request):
                             "accepted_moves": state.accepted_moves,
                             "rejected_moves": state.rejected_moves,
                             "invalid_moves": state.invalid_moves,
+                                "disconnected_moves": state.disconnected_moves,
                             "is_complete": state.is_complete,
                         })
                     }
@@ -111,6 +113,7 @@ async def stream_progress(session_id: str, request: Request):
                                 "accepted_moves": state.accepted_moves,
                                 "rejected_moves": state.rejected_moves,
                                 "invalid_moves": state.invalid_moves,
+                                "disconnected_moves": state.disconnected_moves,
                             })
                         }
                         break

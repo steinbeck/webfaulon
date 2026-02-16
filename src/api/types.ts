@@ -55,6 +55,7 @@ export interface StatusResponse {
   accepted_moves: number;
   rejected_moves: number;
   invalid_moves: number;
+  disconnected_moves: number;
   is_complete: boolean;
 }
 
@@ -74,6 +75,7 @@ export interface SSEProgressData {
   accepted_moves: number;
   rejected_moves: number;
   invalid_moves: number;
+  disconnected_moves: number;
   is_complete: boolean;
 }
 
@@ -90,6 +92,7 @@ export interface SSECompleteData {
   accepted_moves: number;
   rejected_moves: number;
   invalid_moves: number;
+  disconnected_moves: number;
 }
 
 /**

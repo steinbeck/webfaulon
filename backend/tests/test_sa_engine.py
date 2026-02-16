@@ -730,11 +730,11 @@ class TestAllPresetFormulas:
         assert mol is not None
 
 
-class TestDisconnectedPersistence:
-    """Test disconnected-persistence behavior and logging."""
+class TestDisconnectedMoveAccounting:
+    """Test that disconnected moves are tracked separately."""
 
     def test_disconnected_moves_counted(self):
-        """SA with enough steps has some disconnected moves."""
+        """SA tracks disconnected moves separately from invalid."""
         params = SAParams(
             formula="C6H14",
             initial_temp=100,
@@ -748,45 +748,8 @@ class TestDisconnectedPersistence:
         engine = SAEngine(params)
         result = engine.run()
 
-        # With 2000 steps on hexane, some disconnected moves should occur
+        # Disconnected moves are discarded but counted
         assert result.disconnected_moves >= 0
-        # Accounting still correct
+        # Accounting: all categories sum to total
         total = result.accepted_moves + result.rejected_moves + result.invalid_moves + result.disconnected_moves
         assert total == 2000
-
-    def test_reconnection_events_logged(self):
-        """Reconnection events are tracked when disconnected structures reconnect."""
-        params = SAParams(
-            formula="C6H14",
-            initial_temp=100,
-            cooling_schedule_k=8,
-            steps_per_cycle=500,
-            num_cycles=4,
-            optimization_mode="MINIMIZE",
-            seed=42,
-        )
-
-        engine = SAEngine(params)
-        result = engine.run()
-
-        # If there are disconnected moves, there should be some reconnections
-        if result.disconnected_moves > 0:
-            assert result.reconnection_events > 0
-
-    def test_max_consecutive_disconnected_tracked(self):
-        """Max consecutive disconnected streak is tracked."""
-        params = SAParams(
-            formula="C6H14",
-            initial_temp=100,
-            cooling_schedule_k=8,
-            steps_per_cycle=500,
-            num_cycles=4,
-            optimization_mode="MINIMIZE",
-            seed=42,
-        )
-
-        engine = SAEngine(params)
-        result = engine.run()
-
-        # max_consecutive should be >= 0 and <= disconnected_moves
-        assert 0 <= result.max_consecutive_disconnected <= result.disconnected_moves

@@ -123,7 +123,7 @@ class TestValencePreservation:
         assert success_count > 0
 
     def test_may_produce_disconnected(self):
-        """Displacement may produce disconnected graphs (SA engine handles reconnection)"""
+        """Displacement may produce disconnected graphs (SA engine discards them)"""
         hexane = MoleculeGraph.create_linear_alkane(6)
         rng = SeededRandom(888)
 
@@ -137,7 +137,7 @@ class TestValencePreservation:
                 else:
                     disconnected_count += 1
 
-        # Should have both connected and disconnected results
+        # Should produce some of each
         assert connected_count > 0
         assert disconnected_count > 0
 

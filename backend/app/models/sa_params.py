@@ -51,6 +51,7 @@ class SAEngineState(BaseModel):
     accepted_moves: int
     rejected_moves: int
     invalid_moves: int
+    disconnected_moves: int = 0
     is_complete: bool
 
 
@@ -67,7 +68,5 @@ class SAResult(BaseModel):
     rejected_moves: int
     invalid_moves: int
     disconnected_moves: int = 0
-    reconnection_events: int = 0
-    max_consecutive_disconnected: int = 0
     acceptance_ratio: float
     history: list[SAStepResult]

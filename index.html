@@ -598,6 +598,9 @@
             <p>Invalid Moves: <span x-text="result?.invalid_moves"></span></p>
           </div>
           <div class="result-item">
+            <p>Disconnected Moves: <span x-text="result?.disconnected_moves"></span></p>
+          </div>
+          <div class="result-item">
             <p>Acceptance Ratio: <span x-text="result ? (result.accepted_moves / (result.accepted_moves + result.rejected_moves) * 100).toFixed(1) + '%' : '-'"></span></p>
           </div>
         </div>
