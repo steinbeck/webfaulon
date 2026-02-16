@@ -13,5 +13,6 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
         "https://steinbeck.github.io",
     ]
+    session_ttl_seconds: int = 3600  # 1-hour TTL default
 
     model_config = SettingsConfigDict(env_file=".env", env_prefix="WEBFAULON_")
